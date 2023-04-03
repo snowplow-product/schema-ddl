@@ -137,7 +137,7 @@ package object subschema {
           `type` = t,
           required = maybeObj.map(_.keys.toList).map(Required(_)),
           additionalProperties = Some(AdditionalPropertiesSchema(none)),
-          properties = props.map(Properties(_))
+          properties = props.map(x => Properties(x.toMap))
         )
       case _ => s
     }

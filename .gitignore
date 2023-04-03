@@ -6,6 +6,10 @@
 .history/
 .lib/
 .idea/
+.bsp/
+.vscode/
+.metals/
+.bloop/
 dist/*
 target/
 lib_managed/
