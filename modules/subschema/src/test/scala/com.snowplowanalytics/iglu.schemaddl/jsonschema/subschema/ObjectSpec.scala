@@ -74,6 +74,32 @@ class ObjectSpec extends Specification with org.specs2.specification.Tables {
     additionalProperties = Some(AdditionalPropertiesAllowed(false))
   )
 
+  val s9 = Schema.empty.copy(
+    `type` = Some(Object),
+    properties = Some(Properties(Map(
+      "a" -> Schema.empty.copy(`type` = Some(Boolean))
+    ))),
+    patternProperties = Some(PatternProperties(Map(
+      "a.*" -> Schema.empty.copy(`type` = Some(String)),
+      "ab.*" -> Schema.empty.copy(`type` = Some(String))
+    ))),
+    required = Some(Required(List("a"))),
+    additionalProperties = Some(AdditionalPropertiesAllowed(false))
+  )
+
+  val s10 = Schema.empty.copy(
+    `type` = Some(Object),
+    properties = Some(Properties(Map(
+      "a" -> Schema.empty.copy(`type` = Some(Boolean))
+    ))),
+    patternProperties = Some(PatternProperties(Map(
+      "a.*" -> Schema.empty.copy(`type` = Some(String)),
+      "b.*" -> Schema.empty.copy(`type` = Some(String))
+    ))),
+    required = Some(Required(List("a"))),
+    additionalProperties = Some(AdditionalPropertiesAllowed(false))
+  )
+
   def is =
     s2"""
       Objects
@@ -93,6 +119,18 @@ class ObjectSpec extends Specification with org.specs2.specification.Tables {
         s7   ! s6   ! Incompatible |
         s7   ! s7   ! Compatible   |
         s8   ! s7   ! Compatible   |
+        // overlapping pattern properties on either side are undecidable
+        s9   ! s4   ! Undecidable  |
+        s9   ! s5   ! Undecidable  |
+        s9   ! s6   ! Undecidable  |
+        s9   ! s9   ! Undecidable  |
+        s8   ! s9   ! Undecidable  |
+        // non overlapping behave the same as s7
+        s10   ! s4   ! Compatible   |
+        s10   ! s5   ! Compatible   |
+        s10   ! s6   ! Incompatible |
+        s10   ! s10  ! Compatible   |
+        s8    ! s10  ! Compatible   |
         { (s1, s2, result) => isSubSchema(s1, s2) mustEqual result }
       }
     """

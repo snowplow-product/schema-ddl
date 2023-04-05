@@ -11,7 +11,7 @@ import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.NumberProperty
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ObjectProperty.AdditionalProperties._
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ObjectProperty.{Properties, Required}
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.StringProperty.Pattern
-import dregex.Regex
+import dregex.{Regex, Universe}
 import io.circe.Json
 
 import scala.annotation.tailrec
@@ -224,45 +224,78 @@ package object subschema {
     val additionalProperties: Schema => Schema =
       _.additionalProperties.collect({ case AdditionalPropertiesSchema(value) => value }).getOrElse(any)
 
-    val p1: List[(String, Schema)] = properties(s1)
-    val p2: List[(String, Schema)] = properties(s2)
+    def stripAnchorsFromSchemaList(list: List[(String, Schema)]) =
+      list.map{case (r, s) => (stripAnchors(r), s)}
 
-    val pp1: List[(String, Schema)] = patternProperties(s1)
-    val pp2: List[(String, Schema)] = patternProperties(s2)
+    val p1: List[(String, Schema)] = stripAnchorsFromSchemaList(properties(s1))
+    val p2: List[(String, Schema)] = stripAnchorsFromSchemaList(properties(s2))
+
+    val pp1: List[(String, Schema)] = stripAnchorsFromSchemaList(patternProperties(s1))
+    val pp2: List[(String, Schema)] = stripAnchorsFromSchemaList(patternProperties(s2))
 
     val ap1: Schema = additionalProperties(s1)
     val ap2: Schema = additionalProperties(s2)
 
-    val (pp1WithRegexes: List[(Regex, Schema)], pp2WithRegexes: List[(Regex, Schema)]) =
-      Regex.compile(".*" :: "(?!x)x" :: (p1 ++ pp1 ++ p2 ++ pp2).map(_._1).map(stripAnchors)).toList match {
-        case compiled =>
-          val matchAnything = compiled.head
-          val matchNothing = compiled(1)
-          val t = compiled.drop(2)
+    val matchAnythingString = ".*"
+    val matchNothingString  = "(?!x)x"
 
-          val union: List[Regex] => Regex = _.fold[Regex](matchNothing)(_ union _)
+    val universe = {
+      val strRegexps = matchAnythingString :: matchNothingString :: (p1 ++ pp1 ++ p2 ++ pp2).map(_._1).map(stripAnchors)
+      val parsed     = strRegexps.map(Regex.parse)
+      val trees      = parsed.map(_.tree)
+      new Universe(trees, parsed.head.norm)
+    }
 
-          val (p1Regexes, rawPp1Regexes) = (t.take(p1.size), t.slice(p1.size, p1.size + pp1.size))
-          val pp1Regexes = rawPp1Regexes.map(raw => raw.diff(union(p1Regexes)))
-          val ap1Regex = matchAnything.diff(union(p1Regexes ++ rawPp1Regexes))
-          val canonicalized1: List[(Regex, Schema)] =
-            (ap1Regex +: (p1Regexes ++ pp1Regexes)).zip(ap1 +: (p1 ++ pp1).map(_._2))
+    def compileInUniverse(regexp: String): Regex =
+      Regex.compileParsed(Regex.parse(regexp), universe)
 
-          val (p2Regexes, rawPp2Regexes) = (t.slice(p1.size + pp1.size, p1.size + pp1.size + p2.size), t.drop(p1.size + pp1.size + p2.size))
-          val pp2Regexes = rawPp2Regexes.map(raw => raw.diff(union(p2Regexes)))
-          val ap2Regex = matchAnything.diff(union(p2Regexes ++ rawPp2Regexes))
-          val canonicalized2: List[(Regex, Schema)] =
-            (ap2Regex +: (p2Regexes ++ pp2Regexes)).zip(ap2 +: (p2 ++ pp2).map(_._2))
+    def canonicalizeSchema(
+        properties: List[(String, Schema)],
+        patternProperties: List[(String, Schema)],
+        additionalProperties: Schema
+    ): List[(Regex, Schema)] = {
+      val matchAnything = compileInUniverse(matchAnythingString)
+      val matchNothing  = compileInUniverse(matchNothingString)
 
-          (canonicalized1, canonicalized2)
+      val union: List[Regex] => Regex = _.fold[Regex](matchNothing)(_ union _)
+
+      val p1Regexes     = properties.map { case (raw, _) => compileInUniverse(raw) }
+      val rawPp1Regexes = patternProperties.map { case (raw, _) => compileInUniverse(raw) }
+
+      val pp1Regexes = rawPp1Regexes.map(raw => raw.diff(union(p1Regexes)))
+      val ap1Regex   = matchAnything.diff(union(p1Regexes ++ rawPp1Regexes))
+
+      (ap1Regex +: (p1Regexes ++ pp1Regexes))
+        .zip(additionalProperties +: (properties ++ patternProperties).map(_._2))
+    }
+
+    val pp1WithRegexes: List[(Regex, Schema)] = canonicalizeSchema(p1, pp1, ap1)
+    val pp2WithRegexes: List[(Regex, Schema)] = canonicalizeSchema(p2, pp2, ap2)
+
+    def arePatternPropertiesOverlapping(patternProperties: List[(String, Schema)]): Boolean = {
+      val compiledRegexes = patternProperties.map { case (raw, _) => compileInUniverse(raw) }
+      compiledRegexes match {
+        case Nil => false
+        case _   =>
+          compiledRegexes
+            .combinations(2)
+            .exists {
+              case r1 :: r2 :: Nil => r1.doIntersect(r2)
+              case _               => false
+            }
       }
+    }
+
+    val patternPropertiesOverlaps =
+      arePatternPropertiesOverlapping(pp1) || arePatternPropertiesOverlapping(pp2)
 
     val subSchemaCheckOverlappingOnly: List[Compatibility] =
       for { (r1, s1) <- pp1WithRegexes; (r2, s2) <- pp2WithRegexes; if r1.doIntersect(r2) } yield isSubSchema(s1, s2)
 
-    (required(s2).subsetOf(required(s1)), subSchemaCheckOverlappingOnly) match {
-      case (false, _) => Incompatible
-      case (true, xs) => combineAll(combineAnd)(xs.head, xs.tail: _*)
+    (required(s2).subsetOf(required(s1)), subSchemaCheckOverlappingOnly, patternPropertiesOverlaps) match {
+      case (_, _, true)  => Undecidable // Until we implement XP-1365
+      case (false, _, _) => Incompatible
+      case (true, xs, _) => combineAll(combineAnd)(xs.head, xs.tail: _*)
     }
   }
 
