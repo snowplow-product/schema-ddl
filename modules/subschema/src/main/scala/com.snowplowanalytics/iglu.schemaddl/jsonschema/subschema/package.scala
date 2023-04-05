@@ -173,7 +173,7 @@ package object subschema {
         case (Some(m1), Some(m2)) => s".{${m1.value},${m2.value}}"
         case (None, Some(m2))     => s".{0,${m2.value}}"
         case (Some(m1), None)     => s".{${m1.value},}"
-        case (None, None)         => s".*"
+        case (None, None)         => s".{0}"
       }
 
     val List(p1, pl1, p2, pl2) = Regex.compile(

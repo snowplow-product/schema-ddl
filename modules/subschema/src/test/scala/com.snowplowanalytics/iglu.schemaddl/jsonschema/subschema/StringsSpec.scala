@@ -17,7 +17,7 @@ class StringsSpec extends Specification with org.specs2.specification.Tables { d
      Some(0) ! Some(1) ! Some(1) ! Some(1) ! None           ! None            ! None         ! None         ! Incompatible |
      Some(0) ! None    ! Some(1) ! Some(1) ! None           ! None            ! None         ! None         ! Incompatible |
      None    ! Some(1) ! Some(1) ! Some(1) ! None           ! None            ! None         ! None         ! Incompatible |
-     Some(1) ! Some(1) ! None    ! None    ! None           ! None            ! None         ! None         ! Compatible   |
+     Some(1) ! Some(1) ! None    ! None    ! None           ! None            ! None         ! None         ! Incompatible |
      None    ! None    ! None    ! None    ! Some("^.*$")   ! Some(".*")      ! None         ! None         ! Compatible   |
      None    ! None    ! None    ! None    ! Some("[def]*") ! Some("[^abc]*") ! None         ! None         ! Compatible   |
      None    ! None    ! None    ! None    ! None           ! Some("[abc]*")  ! None         ! None         ! Incompatible |
