@@ -295,7 +295,7 @@ package object subschema {
     }
   }
 
-  def anyOfSubType(s1: Schema, s2: Schema): Compatibility = {
+  def anyOfSubType(s1: Schema, s2: Schema): Compatibility =
     (s1.anyOf, s2.anyOf) match {
       case (Some(AnyOf(ao1)), Some(AnyOf(ao2))) =>
         val h :: t = ao1.map(i => {
@@ -309,7 +309,6 @@ package object subschema {
       case _ =>
         Undecidable
     }
-  }
 
   def isNumber(s: Schema): Boolean =
     s.`type`.contains(Integer) || s.`type`.contains(Number)
