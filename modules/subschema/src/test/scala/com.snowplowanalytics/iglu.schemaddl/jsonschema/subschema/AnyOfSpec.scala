@@ -27,7 +27,7 @@ class AnyOfSpec extends Specification with org.specs2.specification.Tables {
 
   // Optionals with union of types
   val s3 = Schema.empty.copy(
-    `type` = Some(Union(Set(String, Null))),
+    `type` = Some(Union(Set(String, Null)))
   )
 
   // Heterogenous enums
@@ -49,7 +49,7 @@ class AnyOfSpec extends Specification with org.specs2.specification.Tables {
 
   // Type unions with extra properties
   val s7 = Schema.empty.copy(
-    `type` = Some(String),
+    `type` = Some(String)
   )
 
   val s8 = Schema.empty.copy(
