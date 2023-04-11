@@ -239,12 +239,9 @@ package object subschema {
     val matchAnythingString = ".*"
     val matchNothingString  = "(?!x)x"
 
-    val universe = {
-      val strRegexps = matchAnythingString :: matchNothingString :: (p1 ++ pp1 ++ p2 ++ pp2).map(_._1).map(stripAnchors)
-      val parsed     = strRegexps.map(Regex.parse)
-      val trees      = parsed.map(_.tree)
-      new Universe(trees, parsed.head.norm)
-    }
+    // To use set operations and overlaps between regexps - they need to be compiled to the same "language"
+    // dregex uses a concept of a Universe to represent it
+    val universe = createRegexUniverse(matchAnythingString :: matchNothingString :: (p1 ++ pp1 ++ p2 ++ pp2).map(_._1))
 
     def compileInUniverse(regexp: String): Regex =
       Regex.compileParsed(Regex.parse(regexp), universe)
@@ -259,13 +256,13 @@ package object subschema {
 
       val union: List[Regex] => Regex = _.fold[Regex](matchNothing)(_ union _)
 
-      val p1Regexes     = properties.map { case (raw, _) => compileInUniverse(raw) }
-      val rawPp1Regexes = patternProperties.map { case (raw, _) => compileInUniverse(raw) }
+      val propertyRegexes     = properties.map { case (raw, _) => compileInUniverse(raw) }
+      val rawPatternPropertiesRegexes = patternProperties.map { case (raw, _) => compileInUniverse(raw) }
 
-      val pp1Regexes = rawPp1Regexes.map(raw => raw.diff(union(p1Regexes)))
-      val ap1Regex   = matchAnything.diff(union(p1Regexes ++ rawPp1Regexes))
+      val patternPropertiesRegexes = rawPatternPropertiesRegexes.map(raw => raw.diff(union(propertyRegexes)))
+      val additionalPropertiesRegex   = matchAnything.diff(union(propertyRegexes ++ rawPatternPropertiesRegexes))
 
-      (ap1Regex +: (p1Regexes ++ pp1Regexes))
+      (additionalPropertiesRegex +: (propertyRegexes ++ patternPropertiesRegexes))
         .zip(additionalProperties +: (properties ++ patternProperties).map(_._2))
     }
 
@@ -382,5 +379,12 @@ package object subschema {
   // an "empty" element doesn't exist
   def combineAll(op: (Compatibility, Compatibility) => Compatibility)(c1: Compatibility, c2: Compatibility*): Compatibility =
     (c1 +: c2.toList).reduce[Compatibility](op)
+
+  def createRegexUniverse(regexps: List[String]): Universe = {
+    val parsed     = regexps.map(Regex.parse)
+    val trees      = parsed.map(_.tree)
+    new Universe(trees, parsed.head.norm)
+  }
+
 
 }
