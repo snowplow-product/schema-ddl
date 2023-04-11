@@ -11,13 +11,13 @@ import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.StringProperty
 class StringsSpec extends Specification with org.specs2.specification.Tables { def is = s2"""
   Strings
   ${
-     "s1min" | "s1max" | "s2max" | "s2max" | "p1"           | "p2"            | "f1"         | "f2"         | "result"     |>
+     "s1min" | "s1max" | "s2min" | "s2max" | "p1"           | "p2"            | "f1"         | "f2"         | "result"     |>
      None    ! None    ! None    ! None    ! None           ! None            ! None         ! None         ! Compatible   |
      Some(1) ! Some(1) ! Some(0) ! Some(2) ! None           ! None            ! None         ! None         ! Compatible   |
      Some(0) ! Some(1) ! Some(1) ! Some(1) ! None           ! None            ! None         ! None         ! Incompatible |
      Some(0) ! None    ! Some(1) ! Some(1) ! None           ! None            ! None         ! None         ! Incompatible |
      None    ! Some(1) ! Some(1) ! Some(1) ! None           ! None            ! None         ! None         ! Incompatible |
-     Some(1) ! Some(1) ! None    ! None    ! None           ! None            ! None         ! None         ! Incompatible |
+     Some(1) ! Some(1) ! None    ! None    ! None           ! None            ! None         ! None         ! Compatible   |
      None    ! None    ! None    ! None    ! Some("^.*$")   ! Some(".*")      ! None         ! None         ! Compatible   |
      None    ! None    ! None    ! None    ! Some("[def]*") ! Some("[^abc]*") ! None         ! None         ! Compatible   |
      None    ! None    ! None    ! None    ! None           ! Some("[abc]*")  ! None         ! None         ! Incompatible |
@@ -26,6 +26,8 @@ class StringsSpec extends Specification with org.specs2.specification.Tables { d
      None    ! None    ! None    ! None    ! None           ! None            ! Some("ipv4") ! None         ! Compatible   |
      None    ! None    ! None    ! None    ! None           ! None            ! None         ! Some("ipv4") ! Incompatible |
      None    ! None    ! None    ! None    ! None           ! None            ! Some("uri")  ! Some("ipv4") ! Incompatible |
+     None    ! Some(5) ! None    ! None    ! None           ! None            ! None         ! None         ! Compatible   |
+     None    ! None    ! None    ! Some(1) ! None           ! None            ! None         ! None         ! Incompatible |
      { (a, b, c, d, e, f, g, h, i) => {
        val s1 = Schema.empty.copy(
          `type`=Some(String),
