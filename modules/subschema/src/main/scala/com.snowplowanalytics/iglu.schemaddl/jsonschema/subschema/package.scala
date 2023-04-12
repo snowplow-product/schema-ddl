@@ -79,7 +79,7 @@ package object subschema {
   def canonicalizeUnion(s: Schema): Schema = {
     s.`type` match {
       case Some(Union(types)) =>
-        val anyOf = types.map(t => Schema.empty.copy(`type` = Some(t))).toList
+        val anyOf = types.map(t => s.copy(`type` = Some(t))).toList
         s.copy(`type` = None, anyOf = Some(AnyOf(anyOf)))
       case _ => s
     }
@@ -150,6 +150,7 @@ package object subschema {
   def isSubType(s1: Schema, s2: Schema): Compatibility = (s1, s2) match {
     case (_, `any`)                                                        => Compatible
     case (`none`, _)                                                       => Compatible
+    case (s1, s2) if s2.anyOf.isDefined                                    => anyOfSubType(s1, s2)
     case (s1, s2) if s1.`type`.contains(Null) && s1.`type` == s2.`type`    => Compatible
     case (s1, s2) if s1.`type`.contains(Boolean) && s1.`type` == s2.`type` => isBooleanSubType(s1, s2)
     case (s1, s2) if isNumber(s1) && isNumber(s2)                          => isNumberSubType(s1, s2)
@@ -157,7 +158,6 @@ package object subschema {
     case (s1, s2) if s1.`type`.contains(Object) && s1.`type` == s2.`type`  => isObjectSubType(s1, s2)
     case (s1, s2) if s1.`type`.contains(Array) && s1.`type` == s2.`type`   => isArraySubType(s1, s2)
     case (s1, s2) if s1.`type` != s2.`type`                                => Incompatible
-    case (s1, s2) if s1.anyOf.isDefined && s2.anyOf.isDefined              => anyOfSubType(s1, s2)
     case _ => Undecidable
   }
 
@@ -173,7 +173,7 @@ package object subschema {
         case (Some(m1), Some(m2)) => s".{${m1.value},${m2.value}}"
         case (None, Some(m2))     => s".{0,${m2.value}}"
         case (Some(m1), None)     => s".{${m1.value},}"
-        case (None, None)         => s".{0}"
+        case (None, None)         => s".{0,}"
       }
 
     val List(p1, pl1, p2, pl2) = Regex.compile(
@@ -192,7 +192,7 @@ package object subschema {
         case _ => false
       }
 
-    if (p1.isSubsetOf(p2) && pl1.isSubsetOf(pl2) && compatibleFormat)
+    if (p1.intersect(pl1).isSubsetOf(p2.intersect(pl2)) && compatibleFormat)
       Compatible
     else
       Incompatible
@@ -302,6 +302,9 @@ package object subschema {
           combineAll(combineOr)(h, t:_*)
         })
         combineAll(combineAnd)(h, t:_*)
+      case (_, Some(AnyOf(ao2))) =>
+        val h :: t = ao2.map(j => isSubType(s1, j))
+        combineAll(combineOr)(h, t:_*)
       case _ =>
         Undecidable
     }
