@@ -150,7 +150,7 @@ package object subschema {
   def isSubType(s1: Schema, s2: Schema): Compatibility = (s1, s2) match {
     case (_, `any`)                                                        => Compatible
     case (`none`, _)                                                       => Compatible
-    case (s1, s2) if !s1.anyOf.isDefined && s2.anyOf.isDefined             => anyOfSubType(s1, s2)
+    case (s1, s2) if s2.anyOf.isDefined                                    => anyOfSubType(s1, s2)
     case (s1, s2) if s1.`type`.contains(Null) && s1.`type` == s2.`type`    => Compatible
     case (s1, s2) if s1.`type`.contains(Boolean) && s1.`type` == s2.`type` => isBooleanSubType(s1, s2)
     case (s1, s2) if isNumber(s1) && isNumber(s2)                          => isNumberSubType(s1, s2)
@@ -158,7 +158,6 @@ package object subschema {
     case (s1, s2) if s1.`type`.contains(Object) && s1.`type` == s2.`type`  => isObjectSubType(s1, s2)
     case (s1, s2) if s1.`type`.contains(Array) && s1.`type` == s2.`type`   => isArraySubType(s1, s2)
     case (s1, s2) if s1.`type` != s2.`type`                                => Incompatible
-    case (s1, s2) if s1.anyOf.isDefined && s2.anyOf.isDefined              => anyOfSubType(s1, s2)
     case _ => Undecidable
   }
 
