@@ -28,6 +28,8 @@ class StringsSpec extends Specification with org.specs2.specification.Tables { d
      None    ! None    ! None    ! None    ! None           ! None            ! Some("uri")  ! Some("ipv4") ! Incompatible |
      None    ! Some(5) ! None    ! None    ! None           ! None            ! None         ! None         ! Compatible   |
      None    ! None    ! None    ! Some(1) ! None           ! None            ! None         ! None         ! Incompatible |
+     None    ! None    ! None    ! Some(5) ! Some("< 5")    ! None            ! None         ! None         ! Compatible   |
+     None    ! None    ! None    ! Some(2) ! Some("> 2")    ! None            ! None         ! None         ! Incompatible |
      { (a, b, c, d, e, f, g, h, i) => {
        val s1 = Schema.empty.copy(
          `type`=Some(String),

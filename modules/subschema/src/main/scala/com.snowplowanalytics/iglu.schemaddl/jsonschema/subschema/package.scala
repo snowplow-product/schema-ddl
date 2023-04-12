@@ -192,7 +192,7 @@ package object subschema {
         case _ => false
       }
 
-    if (p1.isSubsetOf(p2) && pl1.isSubsetOf(pl2) && compatibleFormat)
+    if (p1.intersect(pl1).isSubsetOf(p2.intersect(pl2)) && compatibleFormat)
       Compatible
     else
       Incompatible
