@@ -113,7 +113,7 @@ package object subschema {
       case (t@Some(Null), Some(Enum(List(Json.Null)))) =>
         Schema.empty.copy(`type` = t, `enum` = None)
       case (t@Some(String), Some(Enum(v :: Nil))) =>
-        Schema.empty.copy(`type` = t, pattern = v.asString.map(s => Pattern(s"^$s$$")))
+        Schema.empty.copy(`type` = t, pattern = v.asString.map(s => Pattern(s"^${escapeReservedChars(s)}$$")))
       case (t@Some(Integer), Some(Enum(v :: Nil))) =>
         val intV = v.asNumber.flatMap(_.toBigInt)
         Schema.empty.copy(`type` = t, minimum = intV.map(IntegerMinimum(_)), maximum = intV.map(IntegerMaximum(_)))
@@ -343,6 +343,10 @@ package object subschema {
     s.`type`.contains(Integer) || s.`type`.contains(Number)
 
   def stripAnchors(r: String): String = r.stripPrefix("^").stripSuffix("$")
+
+  def escapeReservedChars(r: String): String = {
+    r.map(c => if ("""\^$.|?*+()[]{}""".contains(c)) s"\\$c" else c.toString).mkString
+  }
 
   def isSubRange(r1: (Option[BigDecimal], Option[BigDecimal]), r2: (Option[BigDecimal], Option[BigDecimal])): Boolean = {
     val minCheck = (r1._1, r2._1) match {
