@@ -176,15 +176,6 @@ package object subschema {
         case (None, None)         => s".{0,}"
       }
 
-    val List(p1, pl1, p2, pl2) = Regex.compile(
-      List(
-        s1.pattern.map(_.value).map(stripAnchors).getOrElse(".*"),
-        lengthRangeToPattern(s1),
-        s2.pattern.map(_.value).map(stripAnchors).getOrElse(".*"),
-        lengthRangeToPattern(s2)
-      )
-    )
-
     val compatibleFormat: Boolean =
       (s1.format, s2.format) match {
         case (Some(f1), Some(f2)) if f1 == f2 => true
@@ -192,10 +183,32 @@ package object subschema {
         case _ => false
       }
 
-    if (p1.intersect(pl1).isSubsetOf(p2.intersect(pl2)) && compatibleFormat)
+    val extractP1 = s1.pattern.map(_.value).map(stripAnchors).getOrElse(".*")
+    val extractP2 = s2.pattern.map(_.value).map(stripAnchors).getOrElse(".*")
+
+    val extractPl1 = lengthRangeToPattern(s1)
+    val extractPl2 = lengthRangeToPattern(s2)
+
+    // Optimize condition to not call the expensive DFA isSubsetOf method when properties are equal
+    val isSubsetOfCnd = (extractP1 equals extractP2, extractPl1 equals extractPl2) match {
+      case (true, true) =>
+        true
+      case (true, false) =>
+        val List(pl1, pl2) = Regex.compile(List(extractPl1, extractPl2))
+        pl1.isSubsetOf(pl2)
+      case (false, true) =>
+        val List(p1, p2) = Regex.compile(List(extractP1, extractP2))
+        p1.isSubsetOf(p2)
+      case (false, false) =>
+        val List(p1, p2, pl1, pl2) = Regex.compile(List(extractP1, extractP2, extractPl1, extractPl2))
+        p1.intersect(pl1) isSubsetOf p2.intersect(pl2)
+    }
+
+    if (isSubsetOfCnd && compatibleFormat) {
       Compatible
-    else
+    } else {
       Incompatible
+    }
   }
 
   def isNumberSubType(s1: Schema, s2: Schema): Compatibility = {
