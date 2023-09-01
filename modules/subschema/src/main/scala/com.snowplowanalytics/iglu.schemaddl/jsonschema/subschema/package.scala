@@ -349,7 +349,7 @@ package object subschema {
           combineAll(combineOr)(h, t:_*)
         })
         combineAll(combineAnd)(h, t:_*)
-      case (_, Some(AnyOf(ao2))) =>
+      case (None, Some(AnyOf(ao2))) =>
         val h :: t = ao2.map(j => isSubType(s1, j))
         combineAll(combineOr)(h, t:_*)
       case (Some(AnyOf(ao1)), None) =>
