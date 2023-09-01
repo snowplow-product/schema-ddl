@@ -57,6 +57,10 @@ class AnyOfSpec extends Specification with org.specs2.specification.Tables {
     `maxLength` = Some(StringProperty.MaxLength(5))
   )
 
+  val s9 = Schema.empty.copy(
+    `type` = Some(Integer),
+  )
+
   def is =
     s2"""
       AnyOf
@@ -74,6 +78,7 @@ class AnyOfSpec extends Specification with org.specs2.specification.Tables {
         s4   ! s3   ! Compatible   |
         s5   ! s6   ! Compatible   |
         s7   ! s8   ! Incompatible |
+        s6   ! s9   ! Compatible   |
         { (s1, s2, result) => isSubSchema(s1, s2) mustEqual result }
       }
     """
