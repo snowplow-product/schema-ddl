@@ -61,6 +61,22 @@ class AnyOfSpec extends Specification with org.specs2.specification.Tables {
     `type` = Some(Integer),
   )
 
+  // Enums with no explicit type
+  val s10 = Schema.empty.copy(
+    `type` = None,
+    `enum` = Some(Enum(List(Json.fromString("string-1"))))
+  )
+
+  val s11 = Schema.empty.copy(
+    `type` = None,
+    `enum` = Some(Enum(List(Json.fromString("string-2"))))
+  )
+
+  val s12 = Schema.empty.copy(
+    `type` = None,
+    `enum` = Some(Enum(List(Json.fromString("string-1"), Json.fromInt(3))))
+  )
+
   def is =
     s2"""
       AnyOf
@@ -79,6 +95,8 @@ class AnyOfSpec extends Specification with org.specs2.specification.Tables {
         s5   ! s6   ! Compatible   |
         s7   ! s8   ! Incompatible |
         s6   ! s9   ! Compatible   |
+        s10  ! s11  ! Incompatible |
+        s10  ! s12  ! Compatible   |
         { (s1, s2, result) => isSubSchema(s1, s2) mustEqual result }
       }
     """
