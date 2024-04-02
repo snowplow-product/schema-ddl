@@ -345,15 +345,15 @@ package object subschema {
     (s1.anyOf, s2.anyOf) match {
       case (Some(AnyOf(ao1)), Some(AnyOf(ao2))) =>
         val h :: t = ao1.map(i => {
-          val h :: t = ao2.map(j => isSubType(i, j))
+          val h :: t = ao2.map(j => isSubSchema(i, j))
           combineAll(combineOr)(h, t:_*)
         })
         combineAll(combineAnd)(h, t:_*)
       case (None, Some(AnyOf(ao2))) =>
-        val h :: t = ao2.map(j => isSubType(s1, j))
+        val h :: t = ao2.map(j => isSubSchema(s1, j))
         combineAll(combineOr)(h, t:_*)
       case (Some(AnyOf(ao1)), None) =>
-        val h :: t = ao1.map(j => isSubType(j, s2))
+        val h :: t = ao1.map(j => isSubSchema(j, s2))
         combineAll(combineOr)(h, t:_*)
       case _ =>
         Undecidable
