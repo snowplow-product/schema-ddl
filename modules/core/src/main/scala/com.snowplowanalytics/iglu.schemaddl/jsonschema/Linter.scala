@@ -16,8 +16,6 @@ import cats.Show
 import cats.data._
 import cats.implicits._
 
-import scala.reflect.runtime.{universe => ru}
-
 // This library
 import Linter._
 import properties.{ArrayProperty, NumberProperty, ObjectProperty, StringProperty}
@@ -65,8 +63,29 @@ object Linter {
   /** Linter-agnostic message */
   final case class Message(jsonPointer: Pointer.SchemaPointer, message: String, level: Linter.Level)
 
+  lazy val allLinters: List[Linter] = List(
+    rootObject,
+    numericMinimumMaximum,
+    stringMinMaxLength,
+    stringMaxLengthRange,
+    arrayMinMaxItems,
+    numericProperties,
+    stringProperties,
+    arrayProperties,
+    objectProperties,
+    requiredPropertiesExist,
+    unknownFormats,
+    numericMinMax,
+    stringLength,
+    optionalNull,
+    description,
+    schemaUri,
+    bqDisallowedCharacters,
+    bqIllegalStart
+  )
+
   lazy val allLintersMap: Map[String, Linter] =
-    sealedDescendants[Linter].map(x => (x.getName, x)).toMap
+    allLinters.map(x => (x.getName, x)).toMap
 
   final case object rootObject extends Linter { self =>
 
@@ -408,32 +427,6 @@ object Linter {
         case _ => noIssues
       }
     }
-  }
-
-  private val m = ru.runtimeMirror(getClass.getClassLoader)
-
-  /**
-    * Reflection method to get runtime object by compiler's `Symbol`
-    * @param desc compiler runtime `Symbol`
-    * @return "real" scala case object
-    */
-  private def getCaseObject(desc: ru.Symbol): Any = {
-    val mod = m.staticModule(desc.asClass.fullName)
-    m.reflectModule(mod).instance
-  }
-
-  /**
-    * Get all objects extending some sealed hierarchy
-    * @tparam Root some sealed trait with object descendants
-    * @return whole set of objects
-    */
-  def sealedDescendants[Root: ru.TypeTag]: Set[Root] = {
-    val symbol = ru.typeOf[Root].typeSymbol
-    val internal = symbol.asInstanceOf[scala.reflect.internal.Symbols#Symbol]
-    val descendants = if (internal.isSealed)
-      Some(internal.sealedDescendants.map(_.asInstanceOf[ru.Symbol]) - symbol)
-    else None
-    descendants.getOrElse(Set.empty).map(x => getCaseObject(x).asInstanceOf[Root])
   }
 
   /**
