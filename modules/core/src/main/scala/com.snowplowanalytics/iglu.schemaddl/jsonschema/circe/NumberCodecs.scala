@@ -26,13 +26,13 @@ trait NumberCodecs {
   private[circe] val unusedImportHack2 = "".asRight
 
   implicit val multipleOfSerializer: Decoder[MultipleOf] =
-    Decoder.instance { cursor: HCursor =>
+    Decoder.instance { (cursor: HCursor) =>
       cursor.as[BigInt].map(MultipleOf.IntegerMultipleOf)
         .orElse(cursor.as[BigDecimal].map(MultipleOf.NumberMultipleOf))
     }
 
   implicit val minimumSerializer: Decoder[Minimum] =
-    Decoder.instance { cursor: HCursor =>
+    Decoder.instance { (cursor: HCursor) =>
       val jsonNumber = cursor.value.asNumber
       val integer = jsonNumber
         .flatMap(_.toBigInt)
@@ -44,7 +44,7 @@ trait NumberCodecs {
     }
 
   implicit val maximumSerializer: Decoder[Maximum] =
-    Decoder.instance { cursor: HCursor =>
+    Decoder.instance { (cursor: HCursor) =>
       val jsonNumber = cursor.value.asNumber
       val integer = jsonNumber
         .flatMap(_.toBigInt)

@@ -51,7 +51,7 @@ case class Schema(multipleOf:           Option[NumberProperty.MultipleOf]       
                   patternProperties:    Option[ObjectProperty.PatternProperties]    = None,
 
                   `type`:               Option[CommonProperties.Type]               = None,
-                  enum:                 Option[CommonProperties.Enum]               = None,
+                  `enum`:               Option[CommonProperties.Enum]               = None,
                   oneOf:                Option[CommonProperties.OneOf]              = None,
                   anyOf:                Option[CommonProperties.AnyOf]              = None,
                   allOf:                Option[CommonProperties.AllOf]              = None,
@@ -60,7 +60,7 @@ case class Schema(multipleOf:           Option[NumberProperty.MultipleOf]       
 
   private[iglu] val allProperties = List(multipleOf, minimum, maximum, maxLength, minLength,
     pattern, format, items, additionalItems, minItems, maxItems, properties,
-    additionalProperties, required, patternProperties, `type`, enum, oneOf, anyOf, allOf, not, description)
+    additionalProperties, required, patternProperties, `type`, `enum`, oneOf, anyOf, allOf, not, description)
 }
 
 object Schema {
@@ -96,7 +96,7 @@ object Schema {
         schema <- f(pointer, current)
         _ <- current.items match {
           case Some(ArrayProperty.Items.ListItems(value)) =>
-            go(value, pointer.downProperty(SchemaProperty.Items))
+            go(value, pointer.downProperty(SchemaProperty.Items)).void
           case Some(ArrayProperty.Items.TupleItems(values)) =>
             values
               .zipWithIndex
@@ -106,7 +106,7 @@ object Schema {
         }
         _ <- current.additionalItems match {
           case Some(ArrayProperty.AdditionalItems.AdditionalItemsSchema(value)) =>
-            go(value, pointer.downProperty(SchemaProperty.AdditionalItems))
+            go(value, pointer.downProperty(SchemaProperty.AdditionalItems)).void
           case _ => F.unit
         }
         _ <- current.properties match {
@@ -119,7 +119,7 @@ object Schema {
         }
         _ <- current.additionalProperties match {
           case Some(ObjectProperty.AdditionalProperties.AdditionalPropertiesSchema(value)) =>
-            go(value, pointer.downProperty(SchemaProperty.AdditionalProperties))
+            go(value, pointer.downProperty(SchemaProperty.AdditionalProperties)).void
           case _ => F.unit
         }
         _ <- current.patternProperties match {

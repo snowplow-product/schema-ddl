@@ -58,6 +58,14 @@ object Pointer {
     }
   }
 
+  object JsonPointer {
+    private[schemaddl] def apply(value: List[Cursor]): JsonPointer = new JsonPointer(value)
+  }
+
+  object SchemaPointer {
+    private[schemaddl] def apply(value: List[Cursor]): SchemaPointer = new SchemaPointer(value)
+  }
+
   // TODO: we should refactor Pointer to make it Schema-agnostic, instead SchemaPointer should be a newtype
   /** Special case of JSON Pointer, working with JSON Schemas instead of generic JSON */
   final case class SchemaPointer private(value: List[Cursor]) extends Pointer {

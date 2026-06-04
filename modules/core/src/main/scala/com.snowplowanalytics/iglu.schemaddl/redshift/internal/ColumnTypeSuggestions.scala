@@ -27,6 +27,7 @@ import scala.annotation.tailrec
 
 // This project
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{TypeMatcher, SchemaOps}
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.CommonProperties.Type
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.NumberProperty.{Maximum, MultipleOf}
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.StringProperty.{Format, MaxLength, MinLength}
@@ -47,7 +48,7 @@ private[redshift] object ColumnTypeSuggestions {
 
   // For complex enums Suggest VARCHAR with length of longest element
   val complexEnumSuggestion: TypeSuggestion = properties=>
-    properties.enum match {
+    properties.`enum` match {
       case Some(enums) if isComplexEnum(enums.value) =>
         val longest = excludeNull(enums.value).map(_.noSpaces.length).maximumOption.getOrElse(16)
         Some(RedshiftVarchar(longest))
@@ -100,12 +101,12 @@ private[redshift] object ColumnTypeSuggestions {
     }
 
   val integerSuggestion: TypeSuggestion = properties=> {
-    (properties.`type`, properties.maximum, properties.enum, properties.multipleOf) match {
+    (properties.`type`, properties.maximum, properties.`enum`, properties.multipleOf) match {
       case (Some(types), Some(max), _, _) if types.possiblyWithNull(Type.Integer) =>
         getIntSize(max)
       // Contains only enum
-      case (types, _, Some(enum), _) if types.isEmpty || types.get.possiblyWithNull(Type.Integer) =>
-        enum.value.traverse(_.asNumber.flatMap(_.toBigInt)).flatMap(_.maximumOption).flatMap(getIntSize)
+      case (types, _, Some(enums), _) if types.isEmpty || types.get.possiblyWithNull(Type.Integer) =>
+        enums.value.traverse(_.asNumber.flatMap(_.toBigInt)).flatMap(_.maximumOption).flatMap(getIntSize)
       case (Some(types), _, _, _) if types.possiblyWithNull(Type.Integer) =>
         Some(RedshiftBigInt)
       case (_, max, _, Some(MultipleOf.IntegerMultipleOf(_))) =>
@@ -139,7 +140,7 @@ private[redshift] object ColumnTypeSuggestions {
   }
 
   val varcharSuggestion: TypeSuggestion = properties=> {
-    (properties.`type`,  properties.maxLength, properties.enum, properties.format) match {
+    (properties.`type`,  properties.maxLength, properties.`enum`, properties.format) match {
       case (Some(types), _,                    _,               Some(Format.Ipv6Format)) if types.possiblyWithNull(Type.String) =>
         Some(RedshiftVarchar(39))
       case (Some(types), _,                    _,               Some(Format.Ipv4Format)) if types.possiblyWithNull(Type.String) =>
@@ -148,9 +149,9 @@ private[redshift] object ColumnTypeSuggestions {
         Some(RedshiftVarchar(255))
       case (Some(types), Some(maxLength),      None,            _) if types.possiblyWithNull(Type.String) =>
         Some(RedshiftVarchar(maxLength.value.toInt))
-      case (_,           _,                    Some(enum),      _) =>
-        enum.value.map(jsonLength).maximumOption match {
-          case Some(maxLength) if enum.value.lengthCompare(1) == 0 =>
+      case (_,           _,                    Some(enums),     _) =>
+        enums.value.map(jsonLength).maximumOption match {
+          case Some(maxLength) if enums.value.lengthCompare(1) == 0 =>
             Some(RedshiftChar(maxLength))
           case Some(maxLength) =>
             Some(RedshiftVarchar(maxLength))
@@ -207,13 +208,13 @@ private[redshift] object ColumnTypeSuggestions {
    * Check enum contains some different types
    * (string and number or number and boolean)
    */
-  private def isComplexEnum(enum: List[Json]) = {
+  private def isComplexEnum(enums: List[Json]) = {
     // Predicates
     def isNumeric(s: Json) = s.isNumber
     def isNonNumeric(s: Json) = !isNumeric(s)
     def isBoolean(s: Json) = s.isBoolean
 
-    val nonNullEnum = excludeNull(enum)
+    val nonNullEnum = excludeNull(enums)
     somePredicates(nonNullEnum, List(isNumeric, isNonNumeric, isBoolean), 2)
   }
 

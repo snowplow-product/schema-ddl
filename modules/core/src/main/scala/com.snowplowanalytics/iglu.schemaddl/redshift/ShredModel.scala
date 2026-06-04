@@ -128,24 +128,26 @@ object ShredModel {
       val modifications: Either[NonEmptyList[Breaking], List[NonBreaking]] =
         that.entries
           .filter(col => thisLookup.contains(col.columnName))
-          .parTraverse(newCol => {
+          .parTraverse { newCol =>
             val oldCol = thisLookup(newCol.columnName)
             val (newType, newNullability, newEncoding) = (newCol.columnType, newCol.isNullable, newCol.compressionEncoding)
             val (oldType, oldNullability, oldEncoding) = (oldCol.columnType, oldCol.isNullable, oldCol.compressionEncoding)
-            if (!oldNullability & newNullability)
-              NullableRequired(oldCol).asLeft.toEitherNel
-            else if (newEncoding != oldEncoding)
-              IncompatibleEncoding(oldCol, newCol).asLeft.toEitherNel
-            else newType match {
-              case ColumnType.RedshiftVarchar(newSize) => oldType match {
-                case ColumnType.RedshiftVarchar(oldSize) if newSize > oldSize => VarcharExtension(oldCol, newCol).asRight
-                case ColumnType.RedshiftVarchar(oldSize) if newSize <= oldSize => NoChanges.asRight
+            val change: Either[NonEmptyList[Breaking], NonBreaking] =
+              if (!oldNullability & newNullability)
+                NullableRequired(oldCol).asLeft.toEitherNel
+              else if (newEncoding != oldEncoding)
+                IncompatibleEncoding(oldCol, newCol).asLeft.toEitherNel
+              else newType match {
+                case ColumnType.RedshiftVarchar(newSize) => oldType match {
+                  case ColumnType.RedshiftVarchar(oldSize) if newSize > oldSize => VarcharExtension(oldCol, newCol).asRight
+                  case ColumnType.RedshiftVarchar(oldSize) if newSize <= oldSize => NoChanges.asRight
+                  case _ => IncompatibleTypes(oldCol, newCol).asLeft.toEitherNel
+                }
+                case _ if newType == oldType => NoChanges.asRight
                 case _ => IncompatibleTypes(oldCol, newCol).asLeft.toEitherNel
               }
-              case _ if newType == oldType => NoChanges.asRight
-              case _ => IncompatibleTypes(oldCol, newCol).asLeft.toEitherNel
-            }
-          })
+            change
+          }
       val allChanges: Either[NonEmptyList[Breaking], List[NonBreaking]] = (modifications, removals) match {
         case (Right(x), Right(y)) => (x ++ y).asRight[NonEmptyList[Breaking]]
         case (Right(_), l@Left(_)) => l

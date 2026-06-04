@@ -321,7 +321,7 @@ object Linter {
     }
 
     def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Issue, Unit] =
-      if (schema.withType(Type.String) && schema.enum.isEmpty && schema.maxLength.isEmpty) {
+      if (schema.withType(Type.String) && schema.`enum`.isEmpty && schema.maxLength.isEmpty) {
         schema.format match {
           case Some(Format.CustomFormat(_)) => Details.invalid
           case None =>  Details.invalid

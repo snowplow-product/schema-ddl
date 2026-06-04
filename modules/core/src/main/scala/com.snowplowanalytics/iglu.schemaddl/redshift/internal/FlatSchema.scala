@@ -19,7 +19,7 @@ import cats.syntax.alternative._
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Pointer.SchemaPointer
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.CommonProperties
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.CommonProperties.Type
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.{Pointer, Schema}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{Pointer, Schema, TypeMatcher, SchemaOps}
 import com.snowplowanalytics.iglu.schemaddl.redshift.ShredModelEntry
 
 import scala.annotation.tailrec

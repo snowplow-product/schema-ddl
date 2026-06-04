@@ -94,6 +94,6 @@ package object jsonschema {
       }
 
     def canBeNull: Boolean =
-      value.enum.exists(_.value.exists(_.isNull)) || withType(Type.Null)
+      value.`enum`.exists(_.value.exists(_.isNull)) || withType(Type.Null)
   }
 }

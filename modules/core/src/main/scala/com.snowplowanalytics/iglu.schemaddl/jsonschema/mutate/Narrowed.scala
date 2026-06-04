@@ -62,7 +62,7 @@ private[mutate] object Narrowed {
         patternProperties = s1.patternProperties |+| s2.patternProperties,
 
         `type` = s1.`type` |+| s2.`type`,
-        enum = s1.enum |+| s2.enum,
+        `enum` = s1.`enum` |+| s2.`enum`,
         oneOf = s1.oneOf |+| s2.oneOf,
         anyOf = s1.anyOf |+| s2.anyOf,
         description = s1.description |+| s2.description
