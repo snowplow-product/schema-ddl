@@ -202,14 +202,20 @@ package object subschema {
        case (true, true) =>
          true
        case (true, false) =>
-         val List(pl1, pl2) = Regex.compile(List(extractPl1, extractPl2))
-         pl1.isSubsetOf(pl2)
+         Regex.compile(List(extractPl1, extractPl2)) match {
+           case pl1 :: pl2 :: Nil => pl1.isSubsetOf(pl2)
+           case _                 => false
+         }
        case (false, true) =>
-         val List(p1, p2) = Regex.compile(List(extractP1, extractP2))
-         p1.isSubsetOf(p2)
+         Regex.compile(List(extractP1, extractP2)) match {
+           case p1 :: p2 :: Nil => p1.isSubsetOf(p2)
+           case _               => false
+         }
        case (false, false) =>
-         val List(p1, p2, pl1, pl2) = Regex.compile(List(extractP1, extractP2, extractPl1, extractPl2))
-         p1.intersect(pl1) isSubsetOf p2.intersect(pl2)
+         Regex.compile(List(extractP1, extractP2, extractPl1, extractPl2)) match {
+           case p1 :: p2 :: pl1 :: pl2 :: Nil => p1.intersect(pl1).isSubsetOf(p2.intersect(pl2))
+           case _                             => false
+         }
      }
      if (isSubsetOfCnd) Compatible else Incompatible
    }
