@@ -19,7 +19,7 @@ class EnumRegexSpec extends Specification with org.specs2.specification.Tables {
     "abc@@"                           ! Compatible  |
     { (placeholderExpr, result) =>
 
-      val exprs = "\\^$.|?*+()[]{}😊".toList.map { c: Char =>
+      val exprs = "\\^$.|?*+()[]{}😊".toList.map { (c: Char) =>
         Json.fromString(placeholderExpr.replace("@", c.toString))
       }.toList
 
