@@ -174,8 +174,18 @@ object SelfSyntaxChecker {
       .build()
       .getSchema(new ObjectMapper().readTree(SelfSchemaText))
 
+  private def normalizeIntegralNumbers(json: Json): Json =
+    json.fold(
+      Json.Null,
+      Json.fromBoolean,
+      number => number.toLong.fold(Json.fromJsonNumber(number))(Json.fromLong),
+      Json.fromString,
+      array => Json.fromValues(array.map(normalizeIntegralNumbers)),
+      obj => Json.fromJsonObject(obj.mapValues(normalizeIntegralNumbers))
+    )
+
   def validateSchema(schema: Json): ValidatedNel[Message, Unit] = {
-    val jacksonJson = circeToJackson(schema)
+    val jacksonJson = circeToJackson(normalizeIntegralNumbers(schema))
     val laxValidation = V4SchemaIgluCore
       .validate(jacksonJson)
       .asScala
