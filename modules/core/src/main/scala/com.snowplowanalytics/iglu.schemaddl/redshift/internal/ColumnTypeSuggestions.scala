@@ -27,7 +27,7 @@ import scala.annotation.tailrec
 
 // This project
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.{TypeMatcher, SchemaOps}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.TypeMatcher
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.CommonProperties.Type
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.NumberProperty.{Maximum, MultipleOf}
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.StringProperty.{Format, MaxLength, MinLength}

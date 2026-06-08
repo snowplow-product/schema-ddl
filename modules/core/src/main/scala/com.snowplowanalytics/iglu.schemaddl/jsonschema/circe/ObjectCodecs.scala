@@ -44,8 +44,8 @@ trait ObjectCodecs {
   implicit def additionalPropertiesDecoder: Decoder[AdditionalProperties] = Decoder.instance { cursor =>
     cursor
       .as[Schema]
-      .map(AdditionalProperties.AdditionalPropertiesSchema)
-      .orElse[DecodingFailure, AdditionalProperties](cursor.as[Boolean].map(AdditionalProperties.AdditionalPropertiesAllowed))
+      .map(AdditionalProperties.AdditionalPropertiesSchema.apply)
+      .orElse[DecodingFailure, AdditionalProperties](cursor.as[Boolean].map(AdditionalProperties.AdditionalPropertiesAllowed.apply))
   }
 
   implicit val requiredDecoder: Decoder[Required] = Decoder.instance { cursor =>

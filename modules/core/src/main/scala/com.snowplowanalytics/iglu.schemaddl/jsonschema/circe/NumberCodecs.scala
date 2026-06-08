@@ -27,8 +27,8 @@ trait NumberCodecs {
 
   implicit val multipleOfSerializer: Decoder[MultipleOf] =
     Decoder.instance { (cursor: HCursor) =>
-      cursor.as[BigInt].map(MultipleOf.IntegerMultipleOf)
-        .orElse(cursor.as[BigDecimal].map(MultipleOf.NumberMultipleOf))
+      cursor.as[BigInt].map(MultipleOf.IntegerMultipleOf.apply)
+        .orElse(cursor.as[BigDecimal].map(MultipleOf.NumberMultipleOf.apply))
     }
 
   implicit val minimumSerializer: Decoder[Minimum] =
@@ -36,10 +36,10 @@ trait NumberCodecs {
       val jsonNumber = cursor.value.asNumber
       val integer = jsonNumber
         .flatMap(_.toBigInt)
-        .map(Minimum.IntegerMinimum)
+        .map(Minimum.IntegerMinimum.apply)
       integer.orElse(jsonNumber
         .flatMap(_.toBigDecimal)
-        .map(Minimum.NumberMinimum))
+        .map(Minimum.NumberMinimum.apply))
         .toRight(DecodingFailure("minimum expected to be a numeric value", cursor.history))
     }
 
@@ -48,10 +48,10 @@ trait NumberCodecs {
       val jsonNumber = cursor.value.asNumber
       val integer = jsonNumber
         .flatMap(_.toBigInt)
-        .map(Maximum.IntegerMaximum)
+        .map(Maximum.IntegerMaximum.apply)
       integer.orElse(jsonNumber
         .flatMap(_.toBigDecimal)
-        .map(Maximum.NumberMaximum))
+        .map(Maximum.NumberMaximum.apply))
         .toRight(DecodingFailure("maximum expected to be a numeric value", cursor.history))
     }
 

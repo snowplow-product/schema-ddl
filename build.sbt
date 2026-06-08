@@ -11,6 +11,8 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 
+scalaVersion := "2.13.18"
+
 lazy val core = project.in(file("modules/core"))
   .settings(
     name               := "schema-ddl",
@@ -23,7 +25,6 @@ lazy val core = project.in(file("modules/core"))
   .settings(BuildSettings.publishSettings)
   .settings(BuildSettings.scoverage)
   .settings(libraryDependencies ++= Seq(
-    "org.scala-lang" % "scala-reflect" % scalaVersion.value,
     Dependencies.Libraries.igluCoreCirce,
     Dependencies.Libraries.circeGeneric,
     Dependencies.Libraries.circeJackson,
@@ -32,7 +33,7 @@ lazy val core = project.in(file("modules/core"))
     Dependencies.Libraries.catsParse,
     Dependencies.Libraries.jacksonDatabind,
     Dependencies.Libraries.jsonValidator,
-    Dependencies.Libraries.libCompat,
+    (Dependencies.Libraries.libCompat).cross(CrossVersion.for3Use2_13),
     // Scala (test only)
     Dependencies.Libraries.specs2,
     Dependencies.Libraries.scalaCheck,
@@ -52,14 +53,13 @@ lazy val subschema = project.in(file("modules/subschema"))
   .settings(BuildSettings.publishSettings)
   .settings(BuildSettings.scoverage)
   .settings(libraryDependencies ++= Seq(
-    "org.scala-lang" % "scala-reflect" % scalaVersion.value,
     Dependencies.Libraries.igluCoreCirce,
     Dependencies.Libraries.circeGeneric,
     Dependencies.Libraries.circeJackson,
     Dependencies.Libraries.circeLiteral,
     Dependencies.Libraries.circeParser,
     Dependencies.Libraries.catsParse,
-    Dependencies.Libraries.dregex,
+    (Dependencies.Libraries.dregex).cross(CrossVersion.for3Use2_13),
     // Scala (test only)
     Dependencies.Libraries.specs2,
     Dependencies.Libraries.scalaCheck,

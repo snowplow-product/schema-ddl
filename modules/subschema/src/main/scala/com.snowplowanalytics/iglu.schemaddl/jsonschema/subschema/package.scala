@@ -47,6 +47,7 @@ package object subschema {
     val splitByType: List[Json] => List[Schema] =
       _.map(inferType(_))
         .groupBy(_._1)
+        .view
         .mapValues(_.flatMap(_._2))
         .mapValues(values => if (values.isEmpty) None else Some(Enum(values)))
         .toList
@@ -97,8 +98,7 @@ package object subschema {
     )
 
   def simplify(s: Schema): Schema =
-    (simplifyMultiValuedEnum _)
-      .andThen(simplifyEnum)(s)
+    (simplifyMultiValuedEnum(_)).andThen(simplifyEnum)(s)
 
   def simplifyMultiValuedEnum(s: Schema): Schema =
     (s.`type`, s.`enum`) match {
@@ -132,7 +132,7 @@ package object subschema {
         )
       case (t@Some(Object), Some(Enum(vObj :: Nil))) =>
         val maybeObj = vObj.asObject
-        val props = maybeObj.map(_.toMap.mapValues(schemaForEnumValue).mapValues(simplifyEnum))
+        val props = maybeObj.map(_.toMap.view.mapValues(schemaForEnumValue).mapValues(simplifyEnum))
         Schema.empty.copy(
           `type` = t,
           required = maybeObj.map(_.keys.toList).map(Required(_)),
@@ -183,42 +183,42 @@ package object subschema {
       }
 
     // Optimize condition to not call the expensive DFA isSubsetOf method when properties are equal
-   if (!compatibleFormat) Incompatible
-   else if (!compatibleRange && s1.pattern.isEmpty && s2.pattern.isEmpty) Incompatible
-   else if (s1.pattern == s2.pattern) Compatible
-   else {
-     val lengthRangeToPattern: Schema => String =
-       s => (s.minLength, s.maxLength) match {
-         case (Some(m1), Some(m2)) => s".{${m1.value},${m2.value}}"
-         case (None, Some(m2)) => s".{0,${m2.value}}"
-         case (Some(m1), None) => s".{${m1.value},}"
-         case (None, None) => s".{0,}"
-       }
-     val extractPl1 = lengthRangeToPattern(s1)
-     val extractPl2 = lengthRangeToPattern(s2)
-     val extractP1 = s1.pattern.map(_.value).map(stripAnchors).getOrElse(".*")
-     val extractP2 = s2.pattern.map(_.value).map(stripAnchors).getOrElse(".*")
-     val isSubsetOfCnd = (extractP1 equals extractP2, extractPl1 equals extractPl2) match {
-       case (true, true) =>
-         true
-       case (true, false) =>
-         Regex.compile(List(extractPl1, extractPl2)) match {
-           case pl1 :: pl2 :: Nil => pl1.isSubsetOf(pl2)
-           case _                 => false
-         }
-       case (false, true) =>
-         Regex.compile(List(extractP1, extractP2)) match {
-           case p1 :: p2 :: Nil => p1.isSubsetOf(p2)
-           case _               => false
-         }
-       case (false, false) =>
-         Regex.compile(List(extractP1, extractP2, extractPl1, extractPl2)) match {
-           case p1 :: p2 :: pl1 :: pl2 :: Nil => p1.intersect(pl1).isSubsetOf(p2.intersect(pl2))
-           case _                             => false
-         }
-     }
-     if (isSubsetOfCnd) Compatible else Incompatible
-   }
+    if (!compatibleFormat) Incompatible
+    else if (!compatibleRange && s1.pattern.isEmpty && s2.pattern.isEmpty) Incompatible
+    else if (s1.pattern == s2.pattern) Compatible
+    else {
+      val lengthRangeToPattern: Schema => String =
+        s => (s.minLength, s.maxLength) match {
+          case (Some(m1), Some(m2)) => s".{${m1.value},${m2.value}}"
+          case (None, Some(m2)) => s".{0,${m2.value}}"
+          case (Some(m1), None) => s".{${m1.value},}"
+          case (None, None) => s".{0,}"
+        }
+      val extractPl1 = lengthRangeToPattern(s1)
+      val extractPl2 = lengthRangeToPattern(s2)
+      val extractP1 = s1.pattern.map(_.value).map(stripAnchors).getOrElse(".*")
+      val extractP2 = s2.pattern.map(_.value).map(stripAnchors).getOrElse(".*")
+      val isSubsetOfCnd = (extractP1.equals(extractP2), extractPl1.equals(extractPl2)) match {
+        case (true, true) =>
+          true
+        case (true, false) =>
+          Regex.compile(List(extractPl1, extractPl2)) match {
+            case pl1 :: pl2 :: Nil => pl1.isSubsetOf(pl2)
+            case _                 => false
+          }
+        case (false, true) =>
+          Regex.compile(List(extractP1, extractP2)) match {
+            case p1 :: p2 :: Nil => p1.isSubsetOf(p2)
+            case _               => false
+          }
+        case (false, false) =>
+          Regex.compile(List(extractP1, extractP2, extractPl1, extractPl2)) match {
+            case p1 :: p2 :: pl1 :: pl2 :: Nil => p1.intersect(pl1).isSubsetOf(p2.intersect(pl2))
+            case _                             => false
+          }
+      }
+      if (isSubsetOfCnd) Compatible else Incompatible
+    }
   }
 
   def isNumberSubType(s1: Schema, s2: Schema): Compatibility = {
@@ -315,7 +315,7 @@ package object subschema {
     (required(s2).subsetOf(required(s1)), subSchemaCheckOverlappingOnly, patternPropertiesOverlaps) match {
       case (_, _, true)  => Undecidable // Until we implement XP-1365
       case (false, _, _) => Incompatible
-      case (true, xs, _) => combineAll(combineAnd)(xs.head, xs.tail: _*)
+      case (true, xs, _) => combineAll(combineAnd)(xs.head, xs.tail*)
     }
   }
 
@@ -334,7 +334,7 @@ package object subschema {
 
     val max = Math.max(i1.length, i2.length)
     val zippedItems = i1.padTo(max + 1, ai1).zip(i2.padTo(max + 1, ai2))
-    val subSchemaCheckZipped = zippedItems.map((isSubSchema _).tupled)
+    val subSchemaCheckZipped = zippedItems.map((isSubSchema(_,_)).tupled)
 
     val s1min = s1.minItems.map(v => BigDecimal(v.value))
     val s1max = s1.maxItems.map(v => BigDecimal(v.value))
@@ -343,7 +343,7 @@ package object subschema {
 
     (isSubRange((s1min, s1max), (s2min, s2max)), subSchemaCheckZipped) match {
       case (false, _) => Incompatible
-      case (true, xs) => combineAll(combineAnd)(xs.head, xs.tail:_*)
+      case (true, xs) => combineAll(combineAnd)(xs.head, xs.tail*)
     }
   }
 
@@ -351,16 +351,16 @@ package object subschema {
     (s1.anyOf, s2.anyOf) match {
       case (Some(AnyOf(ao1)), Some(AnyOf(ao2))) =>
         val h :: t = ao1.map(i => {
-          val h :: t = ao2.map(j => isSubSchema(i, j))
-          combineAll(combineOr)(h, t:_*)
-        })
-        combineAll(combineAnd)(h, t:_*)
+          val h :: t = ao2.map(j => isSubSchema(i, j)) : @unchecked
+          combineAll(combineOr)(h, t*)
+        }) : @unchecked
+        combineAll(combineAnd)(h, t*)
       case (None, Some(AnyOf(ao2))) =>
-        val h :: t = ao2.map(j => isSubSchema(s1, j))
-        combineAll(combineOr)(h, t:_*)
+        val h :: t = ao2.map(j => isSubSchema(s1, j)) : @unchecked
+        combineAll(combineOr)(h, t*)
       case (Some(AnyOf(ao1)), None) =>
-        val h :: t = ao1.map(j => isSubSchema(j, s2))
-        combineAll(combineOr)(h, t:_*)
+        val h :: t = ao1.map(j => isSubSchema(j, s2)) : @unchecked
+        combineAll(combineOr)(h, t*)
       case _ =>
         Undecidable
     }

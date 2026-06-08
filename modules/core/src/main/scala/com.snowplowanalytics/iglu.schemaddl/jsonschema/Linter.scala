@@ -87,12 +87,12 @@ object Linter {
   lazy val allLintersMap: Map[String, Linter] =
     allLinters.map(x => (x.getName, x)).toMap
 
-  final case object rootObject extends Linter { self =>
+  case object rootObject extends Linter { self =>
 
     val level: Level = Level.Warning
 
     case object Details extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String =
         "At the root level, the schema should have a \"type\" property set to \"object\" and have a \"properties\" property"
     }
@@ -103,12 +103,12 @@ object Linter {
       else noIssues
   }
 
-  final case object numericMinimumMaximum extends Linter { self =>
+  case object numericMinimumMaximum extends Linter { self =>
 
     val level: Level = Level.Error
 
     case class Details(min: BigDecimal, max: BigDecimal) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String = s"A field with numeric type has a minimum value [$min] greater than the maximum value [$max]"
     }
 
@@ -120,12 +120,12 @@ object Linter {
       }
   }
 
-  final case object stringMinMaxLength extends Linter { self =>
+  case object stringMinMaxLength extends Linter { self =>
 
     val level: Level = Level.Error
 
     case class Details(min: BigInt, max: BigInt) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String = s"""A string type with "minLength" and "maxLength" property values has a minimum value [$min] higher than the maximum [$max]"""
     }
 
@@ -137,12 +137,12 @@ object Linter {
       }
   }
 
-  final case object stringMaxLengthRange extends Linter { self =>
+  case object stringMaxLengthRange extends Linter { self =>
 
     val level: Level = Level.Warning
 
     case class Details(maximum: BigInt) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String =
         s"""A string property has a "maxLength" [$maximum] greater than the Redshift VARCHAR maximum of 65535"""
     }
@@ -158,12 +158,12 @@ object Linter {
       else noIssues
   }
 
-  final case object arrayMinMaxItems extends Linter { self =>
+  case object arrayMinMaxItems extends Linter { self =>
 
     val level: Level = Level.Error
 
     case class Details(minimum: BigInt, maximum: BigInt) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String =
         s"""A field of array type has a "minItems" value [$minimum] with a greater value than the "maxItems" [$maximum]"""
     }
@@ -176,12 +176,12 @@ object Linter {
       }
   }
 
-  final case object numericProperties extends Linter { self =>
+  case object numericProperties extends Linter { self =>
 
     val level: Level = Level.Error
 
     case class Details(keys: List[String]) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String =
         s"Numeric properties [${keys.mkString(",")}] require either a number, integer or absent values"
     }
@@ -195,12 +195,12 @@ object Linter {
     }
   }
 
-  final case object stringProperties extends Linter { self =>
+  case object stringProperties extends Linter { self =>
 
     val level: Level = Level.Error
 
     case class Details(keys: List[String]) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String =
         s"String properties [${keys.mkString(",")}] require either string or absent values"
     }
@@ -214,12 +214,12 @@ object Linter {
     }
   }
 
-  final case object arrayProperties extends Linter { self =>
+  case object arrayProperties extends Linter { self =>
 
     val level: Level = Level.Error
 
     case class Details(keys: Set[String]) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String =
         s"Array properties [${keys.mkString(",")}] require either array or absent values"
     }
@@ -233,12 +233,12 @@ object Linter {
     }
   }
 
-  final case object objectProperties extends Linter { self =>
+  case object objectProperties extends Linter { self =>
 
     val level: Level = Level.Error
 
     case class Details(keys: Set[String]) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String =
         s"Object properties [${keys.mkString(",")}] require either object or absent values"
     }
@@ -252,12 +252,12 @@ object Linter {
     }
   }
 
-  final case object requiredPropertiesExist extends Linter { self =>
+  case object requiredPropertiesExist extends Linter { self =>
 
     val level: Level = Level.Error
 
     case class Details(keys: Set[String]) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String =
         s"Elements specified as required [${keys.mkString(",")}] don't exist in schema properties"
     }
@@ -273,12 +273,12 @@ object Linter {
       }
   }
 
-  final case object unknownFormats extends Linter { self =>
+  case object unknownFormats extends Linter { self =>
 
     val level: Level = Level.Warning
 
     case class Details(name: String) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String =
         s"Unknown format [$name] detected. Known formats are: date-time, date, email, hostname, ipv4, ipv6 or uri"
     }
@@ -291,12 +291,12 @@ object Linter {
       }
   }
 
-  final case object numericMinMax extends Linter { self =>
+  case object numericMinMax extends Linter { self =>
 
     val level: Level = Level.Warning
 
     case object Details extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String = "A numeric property should have \"minimum\" and \"maximum\" properties"
     }
 
@@ -310,12 +310,12 @@ object Linter {
       else noIssues
   }
 
-  final case object stringLength extends Linter { self =>
+  case object stringLength extends Linter { self =>
 
     val level: Level = Level.Warning
 
     case object Details extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String =
         "A string type in the schema doesn't contain \"maxLength\" or format which is required"
     }
@@ -330,12 +330,12 @@ object Linter {
       } else { noIssues }
   }
 
-  final case object optionalNull extends Linter { self =>
+  case object optionalNull extends Linter { self =>
 
     val level: Level = Level.Info
 
     case class Details(keys: Set[String]) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String =
         s"""Use "type: null" to indicate a field as optional for properties ${keys.toList.sorted.mkString(",")}"""
     }
@@ -355,12 +355,12 @@ object Linter {
       }
   }
 
-  final case object description extends Linter { self =>
+  case object description extends Linter { self =>
 
     val level: Level = Level.Info
 
     case object Details extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String = "The schema is missing the \"description\" property"
     }
 
@@ -371,12 +371,12 @@ object Linter {
       }
   }
 
-  final case object schemaUri extends Linter { self =>
+  case object schemaUri extends Linter { self =>
 
     val level: Level = Level.Error
 
     case class Details(message: String) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String = message
     }
 
@@ -389,12 +389,12 @@ object Linter {
       }
   }
 
-  final case object bqDisallowedCharacters extends Linter { self =>
+  case object bqDisallowedCharacters extends Linter { self =>
 
     val level: Level = Level.Warning
 
     case class Details(keys: Set[String]) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String =
         s"Following properties contain disallowed characters for BigQuery column name: [${keys.mkString(", ")}]"
     }
@@ -409,12 +409,12 @@ object Linter {
     }
   }
 
-  final case object bqIllegalStart extends Linter { self =>
+  case object bqIllegalStart extends Linter { self =>
 
     val level: Level = Level.Warning
 
     case class Details(keys: Set[String]) extends Issue {
-      val linter = self
+      val linter: Linter = self
       def show: String =
         s"Following properties start with illegal character for BigQuery column name: [${keys.mkString(", ")}]"
     }

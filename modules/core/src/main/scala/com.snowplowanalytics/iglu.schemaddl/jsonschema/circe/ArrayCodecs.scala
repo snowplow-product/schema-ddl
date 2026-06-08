@@ -30,15 +30,15 @@ trait ArrayCodecs {
   implicit def itemsDecoder: Decoder[Items] = Decoder.instance { cursor =>
     cursor
       .as[List[Schema]]
-      .map(Items.TupleItems)
-      .orElse[DecodingFailure, Items](cursor.as[Schema].map(Items.ListItems))
+      .map(Items.TupleItems.apply)
+      .orElse[DecodingFailure, Items](cursor.as[Schema].map(Items.ListItems.apply))
   }
 
   implicit def additionalItemsDecoder: Decoder[AdditionalItems] = Decoder.instance { cursor =>
     cursor
       .as[Schema]
       .map(AdditionalItems.AdditionalItemsSchema.apply)
-      .orElse[DecodingFailure, AdditionalItems](cursor.as[Boolean].map(AdditionalItems.AdditionalItemsAllowed))
+      .orElse[DecodingFailure, AdditionalItems](cursor.as[Boolean].map(AdditionalItems.AdditionalItemsAllowed.apply))
   }
 
   implicit val maxItemsDecoder: Decoder[MaxItems] = Decoder.instance { cursor =>
