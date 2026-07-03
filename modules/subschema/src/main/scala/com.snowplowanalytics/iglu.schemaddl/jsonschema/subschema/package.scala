@@ -262,14 +262,9 @@ package object subschema {
     val matchAnythingString = ".*"
     val matchNothingString  = "(?!x)x"
 
-    val regexes = {
-      val allRegexLiterals = (
-        List(
-        matchAnythingString, matchNothingString,
-      ) ++ p1.map { case (raw, _) => raw } ++
-      pp1.map { case (raw, _) => raw } ++
-      p2.map { case (raw, _) => raw } ++
-      pp2.map { case (raw, _) => raw })
+    val (matchAnything, matchNothing, p1WithRegexes, pp1WithRegexes, p2WithRegexes, pp2WithRegexes) = {
+      val allRegexLiterals = List(matchAnythingString, matchNothingString) ++ 
+        (p1 ++ pp1 ++ p2 ++ pp2).map(_._1)
       // to use set operations and overlaps between regexps - they need to be compiled at the same time, in same "universe"
       val allRegexes = Regex.compile(allRegexLiterals.asJava).asScala
 
@@ -281,7 +276,11 @@ package object subschema {
       val pp1Regexes = take(pp1.length)
       val p2Regexes  = take(p2.length)
       val pp2Regexes = take(pp2.length)
-      Regexes(matchAnything, matchNothing, p1Regexes, pp1Regexes, p2Regexes, pp2Regexes)
+      val p1WithRegexes = p1Regexes.zip(p1.map(_._2))
+      val p2WithRegexes = p2Regexes.zip(p2.map(_._2))
+      val pp1WithRegexes = pp1Regexes.zip(pp1.map(_._2))
+      val pp2WithRegexes = pp2Regexes.zip(pp2.map(_._2))
+      (matchAnything, matchNothing, p1WithRegexes, pp1WithRegexes, p2WithRegexes, pp2WithRegexes)
     }
 
     def canonicalizeSchema(
@@ -289,20 +288,20 @@ package object subschema {
         patternProperties: List[(Regex, Schema)],
         additionalProperties: Schema
     ): List[(Regex, Schema)] = {
-      val union: List[Regex] => Regex = _.fold[Regex](regexes.matchNothing)(_.union(_))
+      val union: List[Regex] => Regex = _.fold[Regex](matchNothing)(_.union(_))
 
       val propertyRegexes     = properties.map { case (r, _) => r }
       val rawPatternPropertiesRegexes = patternProperties.map { case (r, _) => r }
 
       val patternPropertiesRegexes = rawPatternPropertiesRegexes.map(raw => raw.diff(union(propertyRegexes)))
-      val additionalPropertiesRegex   = regexes.matchAnything.diff(union(propertyRegexes ++ rawPatternPropertiesRegexes))
+      val additionalPropertiesRegex   = matchAnything.diff(union(propertyRegexes ++ rawPatternPropertiesRegexes))
 
       (additionalPropertiesRegex +: (propertyRegexes ++ patternPropertiesRegexes))
         .zip(additionalProperties +: (properties ++ patternProperties).map(_._2))
     }
 
-    val pp1WithRegexes: List[(Regex, Schema)] = canonicalizeSchema(regexes.p1Regexes.zip(p1.map(_._2)), regexes.pp1Regexes.zip(p1.map(_._2)), ap1)
-    val pp2WithRegexes: List[(Regex, Schema)] = canonicalizeSchema(regexes.p2Regexes.zip(p2.map(_._2)), regexes.pp2Regexes.zip(p2.map(_._2)), ap2)
+    val pp1WithRegexesCanonical: List[(Regex, Schema)] = canonicalizeSchema(p1WithRegexes, pp1WithRegexes, ap1)
+    val pp2WithRegexesCanonical: List[(Regex, Schema)] = canonicalizeSchema(p2WithRegexes, pp2WithRegexes, ap2)
 
     def arePatternPropertiesOverlapping(patternProperties: List[(Regex, Schema)]): Boolean = {
       val compiledRegexes = patternProperties.map { case (r, _) => r }
@@ -319,10 +318,10 @@ package object subschema {
     }
 
     val patternPropertiesOverlaps =
-      arePatternPropertiesOverlapping(regexes.pp1Regexes.zip(p1.map(_._2))) || arePatternPropertiesOverlapping(regexes.pp2Regexes.zip(p2.map(_._2)))
+      arePatternPropertiesOverlapping(pp1WithRegexes) || arePatternPropertiesOverlapping(pp2WithRegexes)
 
     val subSchemaCheckOverlappingOnly: List[Compatibility] =
-      for { (r1, s1) <- pp1WithRegexes; (r2, s2) <- pp2WithRegexes; if r1.doIntersect(r2) } yield isSubSchema(s1, s2)
+      for { (r1, s1) <- pp1WithRegexesCanonical; (r2, s2) <- pp2WithRegexesCanonical; if r1.doIntersect(r2) } yield isSubSchema(s1, s2)
 
     (required(s2).subsetOf(required(s1)), subSchemaCheckOverlappingOnly, patternPropertiesOverlaps) match {
       case (_, _, true)  => Undecidable // Until we implement XP-1365
@@ -426,13 +425,3 @@ package object subschema {
     (c1 +: c2.toList).reduce[Compatibility](op)
 
 }
-
-
-private case class Regexes(
-    matchAnything: Regex,
-    matchNothing: Regex,
-    p1Regexes: List[Regex],
-    pp1Regexes: List[Regex],
-    p2Regexes: List[Regex],
-    pp2Regexes: List[Regex]
-)
