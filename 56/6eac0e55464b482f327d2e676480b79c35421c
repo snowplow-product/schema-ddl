@@ -1,0 +1,19 @@
+modules/core/src/main/scala/com.snowplowanalytics/iglu.schemaddl/jsonschema/Pointer.scala
+  s_e39f2f40c26be6::t_c6b30d0c4a5570 54-56,74-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "566eac0e55464b482f327d2e676480b79c35421c",
+  "prompts": {},
+  "sessions": {
+    "s_e39f2f40c26be6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4599a258-b43a-424b-8052-5befa9f6f2f7",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Gleb Lobov <gleb.lobov@snowplowanalytics.com>"
+    }
+  }
+}
