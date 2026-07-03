@@ -13,7 +13,7 @@
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
 import cats.data._
-import cats.implicits._
+import cats.implicits.{*, given}
 
 /**
  * Contains Schema validation logic for JSON AST to find nonsense (impossible)

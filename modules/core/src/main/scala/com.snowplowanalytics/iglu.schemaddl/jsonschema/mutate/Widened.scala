@@ -13,7 +13,7 @@
 package com.snowplowanalytics.iglu.schemaddl.jsonschema.mutate
 
 import cats.{Eq, Semigroup}
-import cats.implicits._
+import cats.implicits.{*, given}
 
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties._

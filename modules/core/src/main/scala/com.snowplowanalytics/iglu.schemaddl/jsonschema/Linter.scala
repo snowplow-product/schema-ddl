@@ -14,7 +14,7 @@ package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
 import cats.Show
 import cats.data._
-import cats.implicits._
+import cats.implicits.{*, given}
 
 // This library
 import Linter._

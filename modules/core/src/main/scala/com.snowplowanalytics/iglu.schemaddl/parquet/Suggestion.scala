@@ -12,7 +12,7 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.parquet
 
-import cats.implicits._
+import cats.implicits.{*, given}
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.TypeMatcher
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.{CommonProperties, NumberProperty, StringProperty}

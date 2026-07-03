@@ -16,7 +16,7 @@ package circe
 import io.circe.{Encoder, Decoder, DecodingFailure}
 import io.circe.syntax._
 
-import cats.implicits._
+import cats.implicits.{*, given}
 
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ObjectProperty._
 

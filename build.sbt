@@ -33,7 +33,6 @@ lazy val core = project.in(file("modules/core"))
     Dependencies.Libraries.catsParse,
     Dependencies.Libraries.jacksonDatabind,
     Dependencies.Libraries.jsonValidator,
-    (Dependencies.Libraries.libCompat).cross(CrossVersion.for3Use2_13),
     // Scala (test only)
     Dependencies.Libraries.specs2,
     Dependencies.Libraries.scalaCheck,
@@ -59,7 +58,7 @@ lazy val subschema = project.in(file("modules/subschema"))
     Dependencies.Libraries.circeLiteral,
     Dependencies.Libraries.circeParser,
     Dependencies.Libraries.catsParse,
-    (Dependencies.Libraries.dregex).cross(CrossVersion.for3Use2_13),
+    Dependencies.Libraries.dregex,
     // Scala (test only)
     Dependencies.Libraries.specs2,
     Dependencies.Libraries.scalaCheck,

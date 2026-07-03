@@ -21,10 +21,9 @@ object Dependencies {
     val circe            = "0.14.3"
     val circeJackson     = "0.14.0"
     val jsonValidator    = "1.0.76"
-    val catsParse        = "0.3.9"
-    val libCompat        = "2.9.0"
+    val catsParse        = "1.1.0"
     val jacksonDatabind  = "2.14.1"
-    val dregex           = "0.7.0"
+    val dregex           = "0.8.0"
 
     // Scala (test only)
     val specs2           = "4.15.0"
@@ -37,9 +36,8 @@ object Dependencies {
     val igluCoreCirce    = "com.snowplowanalytics"      %% "iglu-core-circe"        % V.igluCore
     val circeGeneric     = "io.circe"                   %% "circe-generic"          % V.circe
     val circeJackson     = "io.circe"                   %% "circe-jackson210"       % V.circeJackson
-    val libCompat        = "org.scala-lang.modules"     %% "scala-collection-compat" % V.libCompat
     val catsParse        = "org.typelevel"              %% "cats-parse"             % V.catsParse
-    val dregex           = "com.github.marianobarrios"  %% "dregex"                 % V.dregex
+    val dregex           = "com.github.marianobarrios"  % "dregex"                  % V.dregex
     // Java
     val jacksonDatabind  = "com.fasterxml.jackson.core" % "jackson-databind"        % V.jacksonDatabind
     val jsonValidator    = "com.networknt"              %  "json-schema-validator"  % V.jsonValidator

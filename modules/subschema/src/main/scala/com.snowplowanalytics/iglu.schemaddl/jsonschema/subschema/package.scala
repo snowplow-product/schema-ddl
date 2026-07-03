@@ -1,5 +1,7 @@
 package com.snowplowanalytics.iglu.schemaddl.jsonschema.subschema
 
+import scala.annotation.tailrec
+import scala.jdk.CollectionConverters.*
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ArrayProperty.AdditionalItems._
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ArrayProperty.Items._
@@ -11,10 +13,8 @@ import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.NumberProperty
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ObjectProperty.AdditionalProperties._
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ObjectProperty.{Properties, Required}
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.StringProperty.Pattern
-import dregex.{Regex, Universe}
+import dregex.Regex
 import io.circe.Json
-
-import scala.annotation.tailrec
 
 package object subschema {
 
@@ -202,17 +202,17 @@ package object subschema {
         case (true, true) =>
           true
         case (true, false) =>
-          Regex.compile(List(extractPl1, extractPl2)) match {
+          Regex.compile(List(extractPl1, extractPl2).asJava).asScala.toList match {
             case pl1 :: pl2 :: Nil => pl1.isSubsetOf(pl2)
             case _                 => false
           }
         case (false, true) =>
-          Regex.compile(List(extractP1, extractP2)) match {
+          Regex.compile(List(extractP1, extractP2).asJava).asScala.toList match {
             case p1 :: p2 :: Nil => p1.isSubsetOf(p2)
             case _               => false
           }
         case (false, false) =>
-          Regex.compile(List(extractP1, extractP2, extractPl1, extractPl2)) match {
+          Regex.compile(List(extractP1, extractP2, extractPl1, extractPl2).asJava).asScala.toList match {
             case p1 :: p2 :: pl1 :: pl2 :: Nil => p1.intersect(pl1).isSubsetOf(p2.intersect(pl2))
             case _                             => false
           }
@@ -262,38 +262,50 @@ package object subschema {
     val matchAnythingString = ".*"
     val matchNothingString  = "(?!x)x"
 
-    // To use set operations and overlaps between regexps - they need to be compiled to the same "language"
-    // dregex uses a concept of a Universe to represent it
-    val universe = createRegexUniverse(matchAnythingString :: matchNothingString :: (p1 ++ pp1 ++ p2 ++ pp2).map(_._1))
+    val regexes = {
+      val allRegexLiterals = (
+        List(
+        matchAnythingString, matchNothingString,
+      ) ++ p1.map { case (raw, _) => raw } ++
+      pp1.map { case (raw, _) => raw } ++
+      p2.map { case (raw, _) => raw } ++
+      pp2.map { case (raw, _) => raw })
+      // to use set operations and overlaps between regexps - they need to be compiled at the same time, in same "universe"
+      val allRegexes = Regex.compile(allRegexLiterals.asJava).asScala
 
-    def compileInUniverse(regexp: String): Regex =
-      Regex.compileParsed(Regex.parse(regexp), universe)
+      val it = allRegexes.iterator
+      def take(n: Int) = it.take(n).toList
+      val matchAnything = take(1).head
+      val matchNothing  = take(1).head
+      val p1Regexes  = take(p1.length)
+      val pp1Regexes = take(pp1.length)
+      val p2Regexes  = take(p2.length)
+      val pp2Regexes = take(pp2.length)
+      Regexes(matchAnything, matchNothing, p1Regexes, pp1Regexes, p2Regexes, pp2Regexes)
+    }
 
     def canonicalizeSchema(
-        properties: List[(String, Schema)],
-        patternProperties: List[(String, Schema)],
+        properties: List[(Regex, Schema)],
+        patternProperties: List[(Regex, Schema)],
         additionalProperties: Schema
     ): List[(Regex, Schema)] = {
-      val matchAnything = compileInUniverse(matchAnythingString)
-      val matchNothing  = compileInUniverse(matchNothingString)
+      val union: List[Regex] => Regex = _.fold[Regex](regexes.matchNothing)(_.union(_))
 
-      val union: List[Regex] => Regex = _.fold[Regex](matchNothing)(_ union _)
-
-      val propertyRegexes     = properties.map { case (raw, _) => compileInUniverse(raw) }
-      val rawPatternPropertiesRegexes = patternProperties.map { case (raw, _) => compileInUniverse(raw) }
+      val propertyRegexes     = properties.map { case (r, _) => r }
+      val rawPatternPropertiesRegexes = patternProperties.map { case (r, _) => r }
 
       val patternPropertiesRegexes = rawPatternPropertiesRegexes.map(raw => raw.diff(union(propertyRegexes)))
-      val additionalPropertiesRegex   = matchAnything.diff(union(propertyRegexes ++ rawPatternPropertiesRegexes))
+      val additionalPropertiesRegex   = regexes.matchAnything.diff(union(propertyRegexes ++ rawPatternPropertiesRegexes))
 
       (additionalPropertiesRegex +: (propertyRegexes ++ patternPropertiesRegexes))
         .zip(additionalProperties +: (properties ++ patternProperties).map(_._2))
     }
 
-    val pp1WithRegexes: List[(Regex, Schema)] = canonicalizeSchema(p1, pp1, ap1)
-    val pp2WithRegexes: List[(Regex, Schema)] = canonicalizeSchema(p2, pp2, ap2)
+    val pp1WithRegexes: List[(Regex, Schema)] = canonicalizeSchema(regexes.p1Regexes.zip(p1.map(_._2)), regexes.pp1Regexes.zip(p1.map(_._2)), ap1)
+    val pp2WithRegexes: List[(Regex, Schema)] = canonicalizeSchema(regexes.p2Regexes.zip(p2.map(_._2)), regexes.pp2Regexes.zip(p2.map(_._2)), ap2)
 
-    def arePatternPropertiesOverlapping(patternProperties: List[(String, Schema)]): Boolean = {
-      val compiledRegexes = patternProperties.map { case (raw, _) => compileInUniverse(raw) }
+    def arePatternPropertiesOverlapping(patternProperties: List[(Regex, Schema)]): Boolean = {
+      val compiledRegexes = patternProperties.map { case (r, _) => r }
       compiledRegexes match {
         case Nil => false
         case _   =>
@@ -307,7 +319,7 @@ package object subschema {
     }
 
     val patternPropertiesOverlaps =
-      arePatternPropertiesOverlapping(pp1) || arePatternPropertiesOverlapping(pp2)
+      arePatternPropertiesOverlapping(regexes.pp1Regexes.zip(p1.map(_._2))) || arePatternPropertiesOverlapping(regexes.pp2Regexes.zip(p2.map(_._2)))
 
     val subSchemaCheckOverlappingOnly: List[Compatibility] =
       for { (r1, s1) <- pp1WithRegexes; (r2, s2) <- pp2WithRegexes; if r1.doIntersect(r2) } yield isSubSchema(s1, s2)
@@ -413,11 +425,14 @@ package object subschema {
   def combineAll(op: (Compatibility, Compatibility) => Compatibility)(c1: Compatibility, c2: Compatibility*): Compatibility =
     (c1 +: c2.toList).reduce[Compatibility](op)
 
-  def createRegexUniverse(regexps: List[String]): Universe = {
-    val parsed     = regexps.map(Regex.parse)
-    val trees      = parsed.map(_.tree)
-    new Universe(trees, parsed.head.norm)
-  }
-
-
 }
+
+
+private case class Regexes(
+    matchAnything: Regex,
+    matchNothing: Regex,
+    p1Regexes: List[Regex],
+    pp1Regexes: List[Regex],
+    p2Regexes: List[Regex],
+    pp2Regexes: List[Regex]
+)

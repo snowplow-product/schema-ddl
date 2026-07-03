@@ -18,7 +18,7 @@ import java.net.URI
 import io.circe.{Decoder, Encoder, DecodingFailure}
 import io.circe.syntax._
 
-import cats.implicits._
+import cats.implicits.{*, given}
 
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.StringProperty._
 
