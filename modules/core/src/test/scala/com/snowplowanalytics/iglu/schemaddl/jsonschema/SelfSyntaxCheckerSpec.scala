@@ -14,7 +14,9 @@ package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
 import cats.data.NonEmptyList
 
+import io.circe.Json
 import io.circe.literal._
+import io.circe.parser.parse
 
 import org.specs2.mutable.Specification
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Pointer.Cursor.{DownField, DownProperty}
@@ -23,6 +25,10 @@ import com.snowplowanalytics.iglu.schemaddl.jsonschema.Linter.Level.{Error, Warn
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Linter.Message
 
 class SelfSyntaxCheckerSpec extends Specification {
+
+  private def validateSchema(schema: Json) =
+    SelfSyntaxChecker.validateSchema(parse(schema.noSpaces).getOrElse(schema))
+
   "validateSchema" should {
     "recognize invalid schema property" in {
       val jsonSchema =
@@ -72,7 +78,7 @@ class SelfSyntaxCheckerSpec extends Specification {
         ]
       }"""
 
-      SelfSyntaxChecker.validateSchema(jsonSchema).toEither must beLeft.like {
+      validateSchema(jsonSchema).toEither must beLeft.like {
         case NonEmptyList
           (Message(
             pointer,
@@ -103,7 +109,7 @@ class SelfSyntaxCheckerSpec extends Specification {
         }
       }"""
 
-      SelfSyntaxChecker.validateSchema(jsonSchema).toEither must beLeft.like {
+      validateSchema(jsonSchema).toEither must beLeft.like {
         case NonEmptyList(
           Message(
             pointer,
@@ -129,7 +135,7 @@ class SelfSyntaxCheckerSpec extends Specification {
           "properties": { }
         }"""
 
-      SelfSyntaxChecker.validateSchema(jsonSchema).toEither must beLeft.like {
+      validateSchema(jsonSchema).toEither must beLeft.like {
         case NonEmptyList
           (Message(
             pointer,
@@ -171,7 +177,7 @@ class SelfSyntaxCheckerSpec extends Specification {
             "properties": { }
           }"""
 
-        SelfSyntaxChecker.validateSchema(jsonSchema).toEither must beLeft.like {
+        validateSchema(jsonSchema).toEither must beLeft.like {
           case NonEmptyList(Message(_, msg, Error), Nil) =>
             msg must contain("does not match the regex pattern")
         }
@@ -205,7 +211,7 @@ class SelfSyntaxCheckerSpec extends Specification {
             "properties": { }
           }"""
 
-        SelfSyntaxChecker.validateSchema(jsonSchema).toEither must beLeft.like {
+        validateSchema(jsonSchema).toEither must beLeft.like {
           case NonEmptyList(Message(_, msg, Error), Nil) =>
             msg must contain("does not match the regex pattern")
         }
