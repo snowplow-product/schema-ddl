@@ -15,6 +15,7 @@ package com.snowplowanalytics.iglu.schemaddl.bigquery
 import io.circe._
 
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.TypeMatcher
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.{CommonProperties, StringProperty}
 
 object Suggestion {
@@ -60,7 +61,7 @@ object Suggestion {
     }
 
   val complexEnumSuggestion: Suggestion = (schema, required) =>
-    schema.enum match {
+    schema.`enum` match {
       case Some(CommonProperties.Enum(values)) =>
         Some(fromEnum(values, required))
       case _ => None

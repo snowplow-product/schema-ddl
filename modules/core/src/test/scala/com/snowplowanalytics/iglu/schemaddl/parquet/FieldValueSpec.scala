@@ -64,13 +64,13 @@ class FieldValueSpec extends org.specs2.Specification { def is = s2"""
 
   def e2 = {
     val input = json""""2022-02-02T01:02:03.123z""""
-    val expected = TimestampValue(java.sql.Timestamp.valueOf("2022-02-02 01:02:03.123"))
+    val expected = TimestampValue(java.sql.Timestamp.from(java.time.Instant.parse("2022-02-02T01:02:03.123Z")))
     testCast(Type.Timestamp, input, expected)
   }
 
   def e3 = {
     val input = json""""2022-02-02T12:02:03.123+03:00""""
-    val expected = TimestampValue(java.sql.Timestamp.valueOf("2022-02-02 09:02:03.123"))
+    val expected = TimestampValue(java.sql.Timestamp.from(java.time.Instant.parse("2022-02-02T09:02:03.123Z")))
     testCast(Type.Timestamp, input, expected)
   }
 

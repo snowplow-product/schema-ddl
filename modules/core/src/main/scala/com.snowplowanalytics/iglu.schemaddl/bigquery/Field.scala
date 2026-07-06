@@ -14,6 +14,7 @@ package com.snowplowanalytics.iglu.schemaddl.bigquery
 
 import com.snowplowanalytics.iglu.schemaddl.StringUtils
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.TypeMatcher
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.{CommonProperties,ArrayProperty}
 
 /**

@@ -12,8 +12,9 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.parquet
 
-import cats.implicits._
+import cats.implicits.{*, given}
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.TypeMatcher
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.{CommonProperties, NumberProperty, StringProperty}
 import io.circe._
 
@@ -46,7 +47,7 @@ private[parquet] object Suggestion {
     }
 
   val enumSuggestion: Suggestion = schema =>
-    schema.enum match {
+    schema.`enum` match {
       case Some(CommonProperties.Enum(values)) =>
         Some(numericEnum(values).orElse(stringEnum(values)).getOrElse(jsonEnum(values)))
       case _ => None

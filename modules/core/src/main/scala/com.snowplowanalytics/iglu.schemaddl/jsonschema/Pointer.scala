@@ -51,16 +51,24 @@ object Pointer {
   val Root = SchemaPointer(Nil)
 
   /** JSON Pointer that cannot have `CursorProperty` */
-  final case class JsonPointer private(value: List[Cursor]) extends Pointer {
+  final case class JsonPointer(value: List[Cursor]) extends Pointer {
     def path: List[String] = get.flatMap {
       case Cursor.DownField(field) => List(field)
       case _ => None
     }
   }
 
+  object JsonPointer {
+    private[schemaddl] def apply(value: List[Cursor]): JsonPointer = new JsonPointer(value)
+  }
+
+  object SchemaPointer {
+    private[schemaddl] def apply(value: List[Cursor]): SchemaPointer = new SchemaPointer(value)
+  }
+
   // TODO: we should refactor Pointer to make it Schema-agnostic, instead SchemaPointer should be a newtype
   /** Special case of JSON Pointer, working with JSON Schemas instead of generic JSON */
-  final case class SchemaPointer private(value: List[Cursor]) extends Pointer {
+  final case class SchemaPointer(value: List[Cursor]) extends Pointer {
     def downProperty(schemaProperty: SchemaProperty): SchemaPointer =
       SchemaPointer(Cursor.DownProperty(schemaProperty) :: value)
 

@@ -13,7 +13,7 @@
 package com.snowplowanalytics.iglu.schemaddl.parquet
 
 import io.circe._
-import cats.implicits._
+import cats.implicits.{*, given}
 import cats.data.ValidatedNel
 
 import java.time.Instant

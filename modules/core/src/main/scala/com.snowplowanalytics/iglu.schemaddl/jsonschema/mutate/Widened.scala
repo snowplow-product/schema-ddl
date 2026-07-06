@@ -13,7 +13,7 @@
 package com.snowplowanalytics.iglu.schemaddl.jsonschema.mutate
 
 import cats.{Eq, Semigroup}
-import cats.implicits._
+import cats.implicits.{*, given}
 
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties._
@@ -57,7 +57,7 @@ private[mutate] object Widened {
         patternProperties = combinePatternProperties(s1, s2),
 
         `type` = s1.`type` |+| s2.`type`,
-        enum = s1.enum |+| s2.enum,
+        `enum` = s1.`enum` |+| s2.`enum`,
         oneOf = None,
         anyOf = combineAlternatives(s1, s2),
         description = s1.description |+| s2.description
@@ -156,7 +156,7 @@ private[mutate] object Widened {
   }
 
   private implicit val descriptionSemigroup: Semigroup[Option[CommonProperties.Description]] = new Semigroup[Option[CommonProperties.Description]] {
-    implicit val eq = Eq.fromUniversalEquals[CommonProperties.Description]
+    implicit val eq: Eq[CommonProperties.Description] = Eq.fromUniversalEquals[CommonProperties.Description]
     def combine(o1: Option[CommonProperties.Description], o2: Option[CommonProperties.Description]): Option[CommonProperties.Description] =
       (o1, o2).mapN {
         case (d1, d2) => if (d1 === d2) Some(d1) else None

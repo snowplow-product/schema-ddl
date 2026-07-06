@@ -26,14 +26,26 @@ object BuildSettings {
 
   lazy val commonSettings = Seq(
     organization       := "com.snowplowanalytics",
-    scalaVersion       := "2.12.15",
-    crossScalaVersions := Seq("2.12.15", "2.13.6"),
-    licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0"))
+    scalaVersion       := "2.13.18",
+    crossScalaVersions := Seq("2.13.18", "3.7.3"),
+    licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0")),
+    scalacOptions := {
+      val existingOptions = scalacOptions.value
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((3, _)) => existingOptions.filterNot(_ == "-Ykind-projector") ++ List("-Xkind-projector")
+        case _            => existingOptions ++ List("-Xsource:3")
+      }
+    }
   )
 
   lazy val basicSettigns = Seq(
     shellPrompt := { _ => "schema-ddl> " },
-    addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full)
+    libraryDependencies ++= {
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, _)) => Seq(compilerPlugin("org.typelevel" % "kind-projector" % "0.13.4" cross CrossVersion.full))
+        case _            => Seq.empty
+      }
+    }
   )
 
   // Maven Central publishing settings

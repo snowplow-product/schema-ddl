@@ -522,7 +522,7 @@ class FlatSchemaSpec extends Specification {
     }
   }
 
-  def bePointers(expected: Set[Pointer.SchemaPointer]): Matcher[Set[Pointer.SchemaPointer]] = { actual: Set[Pointer.SchemaPointer] =>
+  def bePointers(expected: Set[Pointer.SchemaPointer]): Matcher[Set[Pointer.SchemaPointer]] = { (actual: Set[Pointer.SchemaPointer]) =>
     val result =
       s"""|actual: ${actual.toList.map(_.show).sortBy(_.length).mkString(", ")}
           |expected: ${expected.toList.map(_.show).sortBy(_.length).mkString(", ")}""".stripMargin

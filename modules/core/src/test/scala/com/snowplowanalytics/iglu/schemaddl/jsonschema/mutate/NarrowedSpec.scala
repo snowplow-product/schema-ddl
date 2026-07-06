@@ -586,31 +586,31 @@ class NarrowedSpec extends org.specs2.Specification {
   }
 
   def array2 = {
-      val input1 = SpecHelpers.parseSchema(
-        """
-          |{
-          | "type": "array",
-          | "items": {"type": "number"}
-          |}
-        """.stripMargin)
+    val input1 = SpecHelpers.parseSchema(
+      """
+        |{
+        | "type": "array",
+        | "items": {"type": "number"}
+        |}
+      """.stripMargin)
 
-      val input2 = SpecHelpers.parseSchema(
-        s"""
-          |{
-          | "type": "array",
-          | "items": [
-          |  {"type": "number"}
-          | ]
-          |}
-        """.stripMargin)
+    val input2 = SpecHelpers.parseSchema(
+      s"""
+        |{
+        | "type": "array",
+        | "items": [
+        |  {"type": "number"}
+        | ]
+        |}
+      """.stripMargin)
 
-      val expected = SpecHelpers.parseSchema(
-        s"""
-          |{
-          | "type": "array",
-          | "items": {}
-          |}
-        """.stripMargin)
+    val expected = SpecHelpers.parseSchema(
+      s"""
+        |{
+        | "type": "array",
+        | "items": {}
+        |}
+      """.stripMargin)
     Narrowed(input1, input2) must_== expected
   }
 

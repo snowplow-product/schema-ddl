@@ -1,7 +1,7 @@
 package com.snowplowanalytics.iglu.schemaddl.parquet
 
 import cats.Show
-import cats.syntax.all._
+import cats.syntax.all.{*, given}
 import com.snowplowanalytics.iglu.schemaddl.parquet.Type.{Array, Struct}
 
 /*

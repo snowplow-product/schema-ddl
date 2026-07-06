@@ -16,7 +16,7 @@ package circe
 import io.circe.{Encoder, Decoder, DecodingFailure}
 import io.circe.syntax._
 
-import cats.implicits._
+import cats.implicits.{*, given}
 
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ObjectProperty._
 
@@ -44,8 +44,8 @@ trait ObjectCodecs {
   implicit def additionalPropertiesDecoder: Decoder[AdditionalProperties] = Decoder.instance { cursor =>
     cursor
       .as[Schema]
-      .map(AdditionalProperties.AdditionalPropertiesSchema)
-      .orElse[DecodingFailure, AdditionalProperties](cursor.as[Boolean].map(AdditionalProperties.AdditionalPropertiesAllowed))
+      .map(AdditionalProperties.AdditionalPropertiesSchema.apply)
+      .orElse[DecodingFailure, AdditionalProperties](cursor.as[Boolean].map(AdditionalProperties.AdditionalPropertiesAllowed.apply))
   }
 
   implicit val requiredDecoder: Decoder[Required] = Decoder.instance { cursor =>

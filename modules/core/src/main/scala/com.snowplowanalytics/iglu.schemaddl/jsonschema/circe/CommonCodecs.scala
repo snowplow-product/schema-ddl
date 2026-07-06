@@ -28,7 +28,7 @@ trait CommonCodecs {
       .or(Decoder[List[String]].emap(Type.fromProduct))
 
   implicit val descriptionDecoder: Decoder[Description] =
-    Decoder[String].map(Description)
+    Decoder[String].map(Description.apply)
 
   implicit def enumDecoder: Decoder[Enum] =
     Decoder[List[Json]].map(Enum.apply)

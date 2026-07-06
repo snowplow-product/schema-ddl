@@ -3,7 +3,7 @@ package com.snowplowanalytics.iglu.schemaddl.redshift
 import cats.Show
 import cats.syntax.show._
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Pointer.SchemaPointer
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.{Pointer, Schema}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{Pointer, Schema, SchemaOps}
 import com.snowplowanalytics.iglu.schemaddl.redshift.internal.ColumnTypeSuggestions.columnTypeSuggestions
 import io.circe.{ACursor, Json}
 

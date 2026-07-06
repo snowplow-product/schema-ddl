@@ -1,5 +1,7 @@
 package com.snowplowanalytics.iglu.schemaddl.jsonschema.subschema
 
+import scala.annotation.tailrec
+import scala.jdk.CollectionConverters.*
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ArrayProperty.AdditionalItems._
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ArrayProperty.Items._
@@ -11,10 +13,8 @@ import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.NumberProperty
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ObjectProperty.AdditionalProperties._
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ObjectProperty.{Properties, Required}
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.StringProperty.Pattern
-import dregex.{Regex, Universe}
+import dregex.Regex
 import io.circe.Json
-
-import scala.annotation.tailrec
 
 package object subschema {
 
@@ -47,6 +47,7 @@ package object subschema {
     val splitByType: List[Json] => List[Schema] =
       _.map(inferType(_))
         .groupBy(_._1)
+        .view
         .mapValues(_.flatMap(_._2))
         .mapValues(values => if (values.isEmpty) None else Some(Enum(values)))
         .toList
@@ -97,8 +98,7 @@ package object subschema {
     )
 
   def simplify(s: Schema): Schema =
-    (simplifyMultiValuedEnum _)
-      .andThen(simplifyEnum)(s)
+    (simplifyMultiValuedEnum(_)).andThen(simplifyEnum)(s)
 
   def simplifyMultiValuedEnum(s: Schema): Schema =
     (s.`type`, s.`enum`) match {
@@ -132,7 +132,7 @@ package object subschema {
         )
       case (t@Some(Object), Some(Enum(vObj :: Nil))) =>
         val maybeObj = vObj.asObject
-        val props = maybeObj.map(_.toMap.mapValues(schemaForEnumValue).mapValues(simplifyEnum))
+        val props = maybeObj.map(_.toMap.view.mapValues(schemaForEnumValue).mapValues(simplifyEnum))
         Schema.empty.copy(
           `type` = t,
           required = maybeObj.map(_.keys.toList).map(Required(_)),
@@ -183,36 +183,42 @@ package object subschema {
       }
 
     // Optimize condition to not call the expensive DFA isSubsetOf method when properties are equal
-   if (!compatibleFormat) Incompatible
-   else if (!compatibleRange && s1.pattern.isEmpty && s2.pattern.isEmpty) Incompatible
-   else if (s1.pattern == s2.pattern) Compatible
-   else {
-     val lengthRangeToPattern: Schema => String =
-       s => (s.minLength, s.maxLength) match {
-         case (Some(m1), Some(m2)) => s".{${m1.value},${m2.value}}"
-         case (None, Some(m2)) => s".{0,${m2.value}}"
-         case (Some(m1), None) => s".{${m1.value},}"
-         case (None, None) => s".{0,}"
-       }
-     val extractPl1 = lengthRangeToPattern(s1)
-     val extractPl2 = lengthRangeToPattern(s2)
-     val extractP1 = s1.pattern.map(_.value).map(stripAnchors).getOrElse(".*")
-     val extractP2 = s2.pattern.map(_.value).map(stripAnchors).getOrElse(".*")
-     val isSubsetOfCnd = (extractP1 equals extractP2, extractPl1 equals extractPl2) match {
-       case (true, true) =>
-         true
-       case (true, false) =>
-         val List(pl1, pl2) = Regex.compile(List(extractPl1, extractPl2))
-         pl1.isSubsetOf(pl2)
-       case (false, true) =>
-         val List(p1, p2) = Regex.compile(List(extractP1, extractP2))
-         p1.isSubsetOf(p2)
-       case (false, false) =>
-         val List(p1, p2, pl1, pl2) = Regex.compile(List(extractP1, extractP2, extractPl1, extractPl2))
-         p1.intersect(pl1) isSubsetOf p2.intersect(pl2)
-     }
-     if (isSubsetOfCnd) Compatible else Incompatible
-   }
+    if (!compatibleFormat) Incompatible
+    else if (!compatibleRange && s1.pattern.isEmpty && s2.pattern.isEmpty) Incompatible
+    else if (s1.pattern == s2.pattern) Compatible
+    else {
+      val lengthRangeToPattern: Schema => String =
+        s => (s.minLength, s.maxLength) match {
+          case (Some(m1), Some(m2)) => s".{${m1.value},${m2.value}}"
+          case (None, Some(m2)) => s".{0,${m2.value}}"
+          case (Some(m1), None) => s".{${m1.value},}"
+          case (None, None) => s".{0,}"
+        }
+      val extractPl1 = lengthRangeToPattern(s1)
+      val extractPl2 = lengthRangeToPattern(s2)
+      val extractP1 = s1.pattern.map(_.value).map(stripAnchors).getOrElse(".*")
+      val extractP2 = s2.pattern.map(_.value).map(stripAnchors).getOrElse(".*")
+      val isSubsetOfCnd = (extractP1.equals(extractP2), extractPl1.equals(extractPl2)) match {
+        case (true, true) =>
+          true
+        case (true, false) =>
+          Regex.compile(List(extractPl1, extractPl2).asJava).asScala.toList match {
+            case pl1 :: pl2 :: Nil => pl1.isSubsetOf(pl2)
+            case _                 => false
+          }
+        case (false, true) =>
+          Regex.compile(List(extractP1, extractP2).asJava).asScala.toList match {
+            case p1 :: p2 :: Nil => p1.isSubsetOf(p2)
+            case _               => false
+          }
+        case (false, false) =>
+          Regex.compile(List(extractP1, extractP2, extractPl1, extractPl2).asJava).asScala.toList match {
+            case p1 :: p2 :: pl1 :: pl2 :: Nil => p1.intersect(pl1).isSubsetOf(p2.intersect(pl2))
+            case _                             => false
+          }
+      }
+      if (isSubsetOfCnd) Compatible else Incompatible
+    }
   }
 
   def isNumberSubType(s1: Schema, s2: Schema): Compatibility = {
@@ -256,25 +262,36 @@ package object subschema {
     val matchAnythingString = ".*"
     val matchNothingString  = "(?!x)x"
 
-    // To use set operations and overlaps between regexps - they need to be compiled to the same "language"
-    // dregex uses a concept of a Universe to represent it
-    val universe = createRegexUniverse(matchAnythingString :: matchNothingString :: (p1 ++ pp1 ++ p2 ++ pp2).map(_._1))
+    val (matchAnything, matchNothing, p1WithRegexes, pp1WithRegexes, p2WithRegexes, pp2WithRegexes) = {
+      val allRegexLiterals = List(matchAnythingString, matchNothingString) ++ 
+        (p1 ++ pp1 ++ p2 ++ pp2).map(_._1)
+      // to use set operations and overlaps between regexps - they need to be compiled at the same time, in same "universe"
+      val allRegexes = Regex.compile(allRegexLiterals.asJava).asScala
 
-    def compileInUniverse(regexp: String): Regex =
-      Regex.compileParsed(Regex.parse(regexp), universe)
+      val it = allRegexes.iterator
+      def take(n: Int) = it.take(n).toList
+      val matchAnything = take(1).head
+      val matchNothing  = take(1).head
+      val p1Regexes  = take(p1.length)
+      val pp1Regexes = take(pp1.length)
+      val p2Regexes  = take(p2.length)
+      val pp2Regexes = take(pp2.length)
+      val p1WithRegexes = p1Regexes.zip(p1.map(_._2))
+      val p2WithRegexes = p2Regexes.zip(p2.map(_._2))
+      val pp1WithRegexes = pp1Regexes.zip(pp1.map(_._2))
+      val pp2WithRegexes = pp2Regexes.zip(pp2.map(_._2))
+      (matchAnything, matchNothing, p1WithRegexes, pp1WithRegexes, p2WithRegexes, pp2WithRegexes)
+    }
 
     def canonicalizeSchema(
-        properties: List[(String, Schema)],
-        patternProperties: List[(String, Schema)],
+        properties: List[(Regex, Schema)],
+        patternProperties: List[(Regex, Schema)],
         additionalProperties: Schema
     ): List[(Regex, Schema)] = {
-      val matchAnything = compileInUniverse(matchAnythingString)
-      val matchNothing  = compileInUniverse(matchNothingString)
+      val union: List[Regex] => Regex = _.fold[Regex](matchNothing)(_.union(_))
 
-      val union: List[Regex] => Regex = _.fold[Regex](matchNothing)(_ union _)
-
-      val propertyRegexes     = properties.map { case (raw, _) => compileInUniverse(raw) }
-      val rawPatternPropertiesRegexes = patternProperties.map { case (raw, _) => compileInUniverse(raw) }
+      val propertyRegexes     = properties.map { case (r, _) => r }
+      val rawPatternPropertiesRegexes = patternProperties.map { case (r, _) => r }
 
       val patternPropertiesRegexes = rawPatternPropertiesRegexes.map(raw => raw.diff(union(propertyRegexes)))
       val additionalPropertiesRegex   = matchAnything.diff(union(propertyRegexes ++ rawPatternPropertiesRegexes))
@@ -283,11 +300,11 @@ package object subschema {
         .zip(additionalProperties +: (properties ++ patternProperties).map(_._2))
     }
 
-    val pp1WithRegexes: List[(Regex, Schema)] = canonicalizeSchema(p1, pp1, ap1)
-    val pp2WithRegexes: List[(Regex, Schema)] = canonicalizeSchema(p2, pp2, ap2)
+    val pp1WithRegexesCanonical: List[(Regex, Schema)] = canonicalizeSchema(p1WithRegexes, pp1WithRegexes, ap1)
+    val pp2WithRegexesCanonical: List[(Regex, Schema)] = canonicalizeSchema(p2WithRegexes, pp2WithRegexes, ap2)
 
-    def arePatternPropertiesOverlapping(patternProperties: List[(String, Schema)]): Boolean = {
-      val compiledRegexes = patternProperties.map { case (raw, _) => compileInUniverse(raw) }
+    def arePatternPropertiesOverlapping(patternProperties: List[(Regex, Schema)]): Boolean = {
+      val compiledRegexes = patternProperties.map { case (r, _) => r }
       compiledRegexes match {
         case Nil => false
         case _   =>
@@ -301,15 +318,15 @@ package object subschema {
     }
 
     val patternPropertiesOverlaps =
-      arePatternPropertiesOverlapping(pp1) || arePatternPropertiesOverlapping(pp2)
+      arePatternPropertiesOverlapping(pp1WithRegexes) || arePatternPropertiesOverlapping(pp2WithRegexes)
 
     val subSchemaCheckOverlappingOnly: List[Compatibility] =
-      for { (r1, s1) <- pp1WithRegexes; (r2, s2) <- pp2WithRegexes; if r1.doIntersect(r2) } yield isSubSchema(s1, s2)
+      for { (r1, s1) <- pp1WithRegexesCanonical; (r2, s2) <- pp2WithRegexesCanonical; if r1.doIntersect(r2) } yield isSubSchema(s1, s2)
 
     (required(s2).subsetOf(required(s1)), subSchemaCheckOverlappingOnly, patternPropertiesOverlaps) match {
       case (_, _, true)  => Undecidable // Until we implement XP-1365
       case (false, _, _) => Incompatible
-      case (true, xs, _) => combineAll(combineAnd)(xs.head, xs.tail: _*)
+      case (true, xs, _) => combineAll(combineAnd)(xs.head, xs.tail*)
     }
   }
 
@@ -328,7 +345,7 @@ package object subschema {
 
     val max = Math.max(i1.length, i2.length)
     val zippedItems = i1.padTo(max + 1, ai1).zip(i2.padTo(max + 1, ai2))
-    val subSchemaCheckZipped = zippedItems.map((isSubSchema _).tupled)
+    val subSchemaCheckZipped = zippedItems.map((isSubSchema(_,_)).tupled)
 
     val s1min = s1.minItems.map(v => BigDecimal(v.value))
     val s1max = s1.maxItems.map(v => BigDecimal(v.value))
@@ -337,7 +354,7 @@ package object subschema {
 
     (isSubRange((s1min, s1max), (s2min, s2max)), subSchemaCheckZipped) match {
       case (false, _) => Incompatible
-      case (true, xs) => combineAll(combineAnd)(xs.head, xs.tail:_*)
+      case (true, xs) => combineAll(combineAnd)(xs.head, xs.tail*)
     }
   }
 
@@ -345,16 +362,16 @@ package object subschema {
     (s1.anyOf, s2.anyOf) match {
       case (Some(AnyOf(ao1)), Some(AnyOf(ao2))) =>
         val h :: t = ao1.map(i => {
-          val h :: t = ao2.map(j => isSubSchema(i, j))
-          combineAll(combineOr)(h, t:_*)
-        })
-        combineAll(combineAnd)(h, t:_*)
+          val h :: t = ao2.map(j => isSubSchema(i, j)) : @unchecked
+          combineAll(combineOr)(h, t*)
+        }) : @unchecked
+        combineAll(combineAnd)(h, t*)
       case (None, Some(AnyOf(ao2))) =>
-        val h :: t = ao2.map(j => isSubSchema(s1, j))
-        combineAll(combineOr)(h, t:_*)
+        val h :: t = ao2.map(j => isSubSchema(s1, j)) : @unchecked
+        combineAll(combineOr)(h, t*)
       case (Some(AnyOf(ao1)), None) =>
-        val h :: t = ao1.map(j => isSubSchema(j, s2))
-        combineAll(combineOr)(h, t:_*)
+        val h :: t = ao1.map(j => isSubSchema(j, s2)) : @unchecked
+        combineAll(combineOr)(h, t*)
       case _ =>
         Undecidable
     }
@@ -406,12 +423,5 @@ package object subschema {
   // an "empty" element doesn't exist
   def combineAll(op: (Compatibility, Compatibility) => Compatibility)(c1: Compatibility, c2: Compatibility*): Compatibility =
     (c1 +: c2.toList).reduce[Compatibility](op)
-
-  def createRegexUniverse(regexps: List[String]): Universe = {
-    val parsed     = regexps.map(Regex.parse)
-    val trees      = parsed.map(_.tree)
-    new Universe(trees, parsed.head.norm)
-  }
-
 
 }

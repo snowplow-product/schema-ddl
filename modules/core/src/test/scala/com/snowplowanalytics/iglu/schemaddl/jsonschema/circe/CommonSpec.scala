@@ -107,7 +107,7 @@ class CommonSpec extends Specification { def is = s2"""
 
       """
 
-    Schema.parse(schema).flatMap(_.oneOf) must beSome.like {
+    Schema.parse(schema).flatMap(_.oneOf) must beSome[CommonProperties.OneOf].like {
       case oneOf => oneOf.value.length must beEqualTo(2)
     }
   }
@@ -116,7 +116,7 @@ class CommonSpec extends Specification { def is = s2"""
 
     val schema = json"""{ "not": {} }"""
 
-    Schema.parse(schema).flatMap(_.not) must beSome.like {
+    Schema.parse(schema).flatMap(_.not) must beSome[CommonProperties.Not].like {
       case not => not.value must beEqualTo(Schema.empty)
     }
   }
@@ -127,8 +127,8 @@ class CommonSpec extends Specification { def is = s2"""
       "allOf": [ { "type": "string" }, { "type": "number" } ]
     }"""
 
-    Schema.parse(schema).flatMap(_.allOf) must beSome.like {
-      case not => not.value.length must beEqualTo(2)
+    Schema.parse(schema).flatMap(_.allOf) must beSome[CommonProperties.AllOf].like {
+      case allOf => allOf.value.length must beEqualTo(2)
     }
   }
 }
