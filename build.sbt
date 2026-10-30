@@ -13,6 +13,13 @@
 
 scalaVersion := "2.13.18"
 
+lazy val root = project.in(file("."))
+  .settings(
+    name           := "schema-ddl-root",
+    publish / skip := true
+  )
+  .aggregate(core, subschema)
+
 lazy val core = project.in(file("modules/core"))
   .settings(
     name               := "schema-ddl",
