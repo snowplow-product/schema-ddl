@@ -27,12 +27,13 @@ object BuildSettings {
   lazy val commonSettings = Seq(
     organization       := "com.snowplowanalytics",
     scalaVersion       := "2.13.18",
-    crossScalaVersions := Seq("2.13.18", "3.7.3"),
+    crossScalaVersions := Seq("2.13.18", "3.9.0"),
     licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0")),
     scalacOptions := {
       val existingOptions = scalacOptions.value
       CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((3, _)) => existingOptions.filterNot(_ == "-Ykind-projector") ++ List("-Xkind-projector")
+        case Some((3, _)) =>
+          existingOptions.filterNot(Set("-Ykind-projector", "-Xfatal-warnings")) ++ List("-Xkind-projector", "-Werror")
         case _            => existingOptions ++ List("-Xsource:3")
       }
     }
@@ -48,12 +49,21 @@ object BuildSettings {
     }
   )
 
-  // Maven Central publishing settings
+  // GitHub Packages publishing settings
   lazy val publishSettings = Seq[Setting[_]](
+    publishTo := Some("GitHub Packages" at "https://maven.pkg.github.com/snowplow-product/schema-ddl"),
+    publishMavenStyle := true,
+    // Only the Scala 3 jars and POMs are needed by msc-backend
+    publish / skip := scalaBinaryVersion.value != "3",
+    Compile / packageDoc / publishArtifact := false,
+    Compile / packageSrc / publishArtifact := false,
+    credentials ++= sys.env.get("GITHUB_TOKEN").map { token =>
+      Credentials("GitHub Package Registry", "maven.pkg.github.com", sys.env.getOrElse("GITHUB_ACTOR", "_"), token)
+    }.toList,
     pomIncludeRepository := { _ => false },
     ThisBuild / dynverVTagPrefix := false,      // Otherwise git tags required to have v-prefix
     homepage := Some(url("http://snowplowanalytics.com")),
-    scmInfo := Some(ScmInfo(url("https://github.com/snowplow/schema-ddl"), "scm:git@github.com:snowplow/schema-ddl.git")),
+    scmInfo := Some(ScmInfo(url("https://github.com/snowplow-product/schema-ddl"), "scm:git@github.com:snowplow-product/schema-ddl.git")),
     publishArtifact := true,
     Test / publishArtifact := false,
     developers := List(
